@@ -1288,76 +1288,83 @@
         // TABLE FORMAT HANDLER
         // ============================================
         async function handleTableFormat() {
-            await Word.run(async (context) => {
-                try {
-                    // Get selection and try to find parent table
+            try {
+                await Word.run(async (context) => {
                     const selection = context.document.getSelection();
-                    const parentTable = selection.parentTable;
-                    parentTable.load("rows");
                     
+                    // Get the table
+                    const table = selection.parentTable;
+                    table.load("rows");
                     await context.sync();
                     
-                    // If we get here without error, we have a table
-                    const table = parentTable;
-                    
-                    // Set table-level font
-                    table.font.name = "Times New Roman";
-                    table.font.size = 10;
-                    
-                    // Get all rows
-                    const rows = table.rows;
-                    rows.load("items");
+                    // Get first row (header)
+                    const headerRow = table.rows.getFirst();
+                    headerRow.load("cells");
                     await context.sync();
                     
-                    // Process each row
-                    for (let rowIndex = 0; rowIndex < rows.items.length; rowIndex++) {
-                        const row = rows.items[rowIndex];
+                    // Make header row bold
+                    headerRow.font.bold = true;
+                    headerRow.font.name = "Times New Roman";
+                    headerRow.font.size = 10;
+                    
+                    // Center header cells
+                    const headerCells = headerRow.cells;
+                    headerCells.load("items");
+                    await context.sync();
+                    
+                    for (let i = 0; i < headerCells.items.length; i++) {
+                        headerCells.items[i].body.paragraphs.load("items");
+                    }
+                    await context.sync();
+                    
+                    for (let i = 0; i < headerCells.items.length; i++) {
+                        const paras = headerCells.items[i].body.paragraphs.items;
+                        for (let j = 0; j < paras.length; j++) {
+                            paras[j].alignment = Word.Alignment.centered;
+                        }
+                    }
+                    
+                    // Format body rows (all except first)
+                    const allRows = table.rows;
+                    allRows.load("items");
+                    await context.sync();
+                    
+                    for (let r = 1; r < allRows.items.length; r++) {
+                        const row = allRows.items[r];
+                        row.font.bold = false;
+                        row.font.name = "Times New Roman";
+                        row.font.size = 10;
+                        
+                        row.load("cells");
+                        await context.sync();
+                        
                         const cells = row.cells;
                         cells.load("items");
                         await context.sync();
                         
-                        // Process each cell in the row
-                        for (let cellIndex = 0; cellIndex < cells.items.length; cellIndex++) {
-                            const cell = cells.items[cellIndex];
-                            const cellBody = cell.body;
-                            const paras = cellBody.paragraphs;
-                            paras.load("items");
-                            await context.sync();
-                            
-                            // Apply formatting to each paragraph in cell
-                            for (let paraIndex = 0; paraIndex < paras.items.length; paraIndex++) {
-                                const para = paras.items[paraIndex];
-                                
-                                // Font settings
-                                para.font.name = "Times New Roman";
-                                para.font.size = 10;
-                                
-                                // Spacing
-                                para.spaceAfter = 6;
-                                para.spaceBefore = 6;
-                                para.lineSpacing = 12; // Single spacing
-                                
-                                if (rowIndex === 0) {
-                                    // Header row: bold, centered
-                                    para.font.bold = true;
-                                    para.alignment = Word.Alignment.centered;
-                                } else {
-                                    // Body rows: not bold, left-aligned
-                                    para.font.bold = false;
-                                    para.alignment = Word.Alignment.left;
-                                }
+                        for (let c = 0; c < cells.items.length; c++) {
+                            cells.items[c].body.paragraphs.load("items");
+                        }
+                        await context.sync();
+                        
+                        for (let c = 0; c < cells.items.length; c++) {
+                            const paras = cells.items[c].body.paragraphs.items;
+                            for (let p = 0; p < paras.length; p++) {
+                                paras[p].alignment = Word.Alignment.left;
                             }
                         }
                     }
                     
+                    // Auto-fit table to window
+                    table.autoFitWindow();
+                    
                     await context.sync();
                     showToast('Table formatted!', 'success');
-                    
-                } catch (error) {
-                    console.error("Table Format Error:", error);
-                    showToast('Click inside a table first', 'error');
-                }
-            });
+                });
+            } catch (error) {
+                console.error("Table Format Error:", error);
+                showToast('Click inside a table first: ' + error.message, 'error');
+            }
         }
 
         // ============================================
