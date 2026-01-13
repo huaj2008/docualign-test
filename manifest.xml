@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+
+  <!-- Basic Add-in Information -->
+  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Version>1.1.0</Version>
+  <ProviderName>DocuAlign</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="DocuAlign"/>
+  <Description DefaultValue="Professional document formatting for regulatory submissions, SOPs, and quality documents. Consistent styling with pharma-aware case conversion."/>
+  <IconUrl DefaultValue="https://huaj2008.github.io/docualign-test/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://huaj2008.github.io/docualign-test/assets/icon-64.png"/>
+  <SupportUrl DefaultValue="https://github.com/huaj2008/docualign-test"/>
+
+  <!-- Hosts -->
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+
+  <!-- Requirements -->
+  <Requirements>
+    <Sets>
+      <Set Name="WordApi" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
+
+  <!-- Default Settings -->
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://huaj2008.github.io/docualign-test/taskpane.html"/>
+  </DefaultSettings>
+
+  <!-- Permissions -->
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <!-- Version Overrides for Ribbon -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          
+          <!-- Function File for Ribbon Commands -->
+          <FunctionFile resid="Functions.Url"/>
+
+          <!-- Ribbon Extension Point -->
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="DocuAlignTab">
+              <Group id="TextFormattingGroup">
+                <Label resid="TextFormatting.GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+                
+                <!-- Title Case Button -->
+                <Control xsi:type="Button" id="TitleCaseButton">
+                  <Label resid="TitleCase.Label"/>
+                  <Supertip>
+                    <Title resid="TitleCase.Label"/>
+                    <Description resid="TitleCase.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyTitleCase</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Sentence Case Button -->
+                <Control xsi:type="Button" id="SentenceCaseButton">
+                  <Label resid="SentenceCase.Label"/>
+                  <Supertip>
+                    <Title resid="SentenceCase.Label"/>
+                    <Description resid="SentenceCase.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applySentenceCase</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- More Options (Taskpane) Button -->
+                <Control xsi:type="Button" id="TaskpaneButton">
+                  <Label resid="Taskpane.Label"/>
+                  <Supertip>
+                    <Title resid="Taskpane.Label"/>
+                    <Description resid="Taskpane.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>DocuAlignTaskpane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+
+              </Group>
+              <Label resid="Tab.Label"/>
+            </CustomTab>
+          </ExtensionPoint>
+
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <!-- Resources -->
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://huaj2008.github.io/docualign-test/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://huaj2008.github.io/docualign-test/assets/icon-32.png"/>
+        <bt:Image id="Icon.64x64" DefaultValue="https://huaj2008.github.io/docualign-test/assets/icon-64.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://huaj2008.github.io/docualign-test/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Functions.Url" DefaultValue="https://huaj2008.github.io/docualign-test/functions.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://huaj2008.github.io/docualign-test/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="Tab.Label" DefaultValue="DocuAlign"/>
+        <bt:String id="TextFormatting.GroupLabel" DefaultValue="Text Formatting"/>
+        <bt:String id="TitleCase.Label" DefaultValue="Title Case"/>
+        <bt:String id="SentenceCase.Label" DefaultValue="Sentence Case"/>
+        <bt:String id="Taskpane.Label" DefaultValue="More Options"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="TitleCase.Tooltip" DefaultValue="Convert selected text or current paragraph to Title Case. Preserves pharmaceutical acronyms (FDA, IND, NDA, etc.). First and last words always capitalized."/>
+        <bt:String id="SentenceCase.Tooltip" DefaultValue="Convert selected text or current paragraph to Sentence Case. Preserves pharmaceutical acronyms. Only first word of each sentence capitalized."/>
+        <bt:String id="Taskpane.Tooltip" DefaultValue="Open the DocuAlign panel for additional formatting options including table formatting, captions, cross-references, and more."/>
+      </bt:LongStrings>
+    </Resources>
+
+  </VersionOverrides>
+</OfficeApp>

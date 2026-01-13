@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <title>DocuAlign Functions</title>
+    
+    <!-- Office.js -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        // ============================================
+        // DOCUALIGN - RIBBON BUTTON FUNCTIONS
+        // Version 1.1.0 - Case Conversion with Paragraph Support
+        // ============================================
+
+        // Pharmaceutical acronyms to preserve (exact case)
+        const PRESERVED_TERMS = [
+            'FDA', 'IND', 'NDA', 'BLA', 'ANDA', 'DMF', 'CTD', 'eCTD',
+            'PK', 'PD', 'ADME', 'AUC', 'Cmax', 'Tmax',
+            'API', 'GMP', 'cGMP', 'ICH', 'QbD', 'PAT', 'CPP', 'CQA', 'QTPP',
+            'DNA', 'RNA', 'mRNA', 'pH', 'UV', 'IR', 'NMR', 'HPLC', 'GC', 'MS',
+            'IV', 'IM', 'SC', 'PO', 'QD', 'BID', 'TID', 'QID', 'PRN',
+            'US', 'EU', 'UK', 'WHO', 'EMA', 'PMDA', 'TGA', 'NMPA',
+            'SOP', 'QA', 'QC', 'R&D', 'CMC', 'CMO', 'CRO', 'CDMO'
+        ];
+
+        // Words to keep lowercase in Title Case (unless first/last)
+        const LOWERCASE_WORDS = [
+            'a', 'an', 'the', 'at', 'by', 'for', 'in', 'of', 'on', 'to', 'up',
+            'and', 'as', 'but', 'or', 'nor', 'so', 'yet'
+        ];
+
+        // Initialize Office
+        Office.onReady(function(info) {
+            if (info.host === Office.HostType.Word) {
+                // Register functions for ribbon buttons
+                Office.actions.associate("applyTitleCase", applyTitleCase);
+                Office.actions.associate("applySentenceCase", applySentenceCase);
+            }
+        });
+
+        // ============================================
+        // TITLE CASE FUNCTION
+        // ============================================
+        async function applyTitleCase(event) {
+            try {
+                await Word.run(async (context) => {
+                    const selection = context.document.getSelection();
+                    selection.load("text");
+                    await context.sync();
+
+                    let textToConvert = selection.text;
+                    let targetRange = selection;
+
+                    // If no text selected (or just whitespace), get entire paragraph
+                    if (!textToConvert || textToConvert.trim() === "") {
+                        const paragraphs = selection.paragraphs;
+                        paragraphs.load("items");
+                        await context.sync();
+
+                        if (paragraphs.items.length > 0) {
+                            targetRange = paragraphs.items[0].getRange();
+                            targetRange.load("text");
+                            await context.sync();
+                            textToConvert = targetRange.text;
+                            
+                            // Remove trailing paragraph mark if present
+                            if (textToConvert.endsWith('\r')) {
+                                textToConvert = textToConvert.slice(0, -1);
+                            }
+                        }
+                    }
+
+                    if (textToConvert && textToConvert.trim() !== "") {
+                        const converted = convertToTitleCase(textToConvert);
+                        targetRange.insertText(converted, Word.InsertLocation.replace);
+                    }
+
+                    await context.sync();
+                });
+            } catch (error) {
+                console.error("Title Case Error:", error);
+            }
+            event.completed();
+        }
+
+        // ============================================
+        // SENTENCE CASE FUNCTION
+        // ============================================
+        async function applySentenceCase(event) {
+            try {
+                await Word.run(async (context) => {
+                    const selection = context.document.getSelection();
+                    selection.load("text");
+                    await context.sync();
+
+                    let textToConvert = selection.text;
+                    let targetRange = selection;
+
+                    // If no text selected (or just whitespace), get entire paragraph
+                    if (!textToConvert || textToConvert.trim() === "") {
+                        const paragraphs = selection.paragraphs;
+                        paragraphs.load("items");
+                        await context.sync();
+
+                        if (paragraphs.items.length > 0) {
+                            targetRange = paragraphs.items[0].getRange();
+                            targetRange.load("text");
+                            await context.sync();
+                            textToConvert = targetRange.text;
+                            
+                            // Remove trailing paragraph mark if present
+                            if (textToConvert.endsWith('\r')) {
+                                textToConvert = textToConvert.slice(0, -1);
+                            }
+                        }
+                    }
+
+                    if (textToConvert && textToConvert.trim() !== "") {
+                        const converted = convertToSentenceCase(textToConvert);
+                        targetRange.insertText(converted, Word.InsertLocation.replace);
+                    }
+
+                    await context.sync();
+                });
+            } catch (error) {
+                console.error("Sentence Case Error:", error);
+            }
+            event.completed();
+        }
+
+        // ============================================
+        // CONVERSION LOGIC
+        // ============================================
+
+        function convertToTitleCase(text) {
+            // Create a map of preserved terms (case-insensitive lookup)
+            const preservedMap = {};
+            PRESERVED_TERMS.forEach(term => {
+                preservedMap[term.toLowerCase()] = term;
+            });
+
+            const words = text.split(/(\s+)/); // Keep whitespace as separate elements
+            const result = [];
+
+            let wordIndex = 0;
+            const totalWords = words.filter(w => w.trim() !== '').length;
+
+            for (let i = 0; i < words.length; i++) {
+                const segment = words[i];
+                
+                // If it's whitespace, keep as-is
+                if (segment.trim() === '') {
+                    result.push(segment);
+                    continue;
+                }
+
+                wordIndex++;
+                const isFirst = wordIndex === 1;
+                const isLast = wordIndex === totalWords;
+
+                // Check if it's a preserved term
+                const lowerSegment = segment.toLowerCase();
+                if (preservedMap[lowerSegment]) {
+                    result.push(preservedMap[lowerSegment]);
+                }
+                // Check if it looks like an acronym (2-10 uppercase letters)
+                else if (/^[A-Z]{2,10}$/.test(segment)) {
+                    result.push(segment);
+                }
+                // Check if it should stay lowercase (not first or last)
+                else if (!isFirst && !isLast && LOWERCASE_WORDS.includes(lowerSegment)) {
+                    result.push(lowerSegment);
+                }
+                // Capitalize first letter
+                else {
+                    result.push(segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase());
+                }
+            }
+
+            return result.join('');
+        }
+
+        function convertToSentenceCase(text) {
+            // Create a map of preserved terms (case-insensitive lookup)
+            const preservedMap = {};
+            PRESERVED_TERMS.forEach(term => {
+                preservedMap[term.toLowerCase()] = term;
+            });
+
+            // Split into sentences (handling ., !, ?)
+            const sentences = text.split(/([.!?]+\s*)/);
+            const result = [];
+
+            for (let i = 0; i < sentences.length; i++) {
+                const sentence = sentences[i];
+                
+                // If it's punctuation/separator, keep as-is
+                if (/^[.!?]+\s*$/.test(sentence)) {
+                    result.push(sentence);
+                    continue;
+                }
+
+                // Process sentence
+                const words = sentence.split(/(\s+)/);
+                const processedWords = [];
+                let isFirstWord = true;
+
+                for (let j = 0; j < words.length; j++) {
+                    const word = words[j];
+
+                    // If whitespace, keep as-is
+                    if (word.trim() === '') {
+                        processedWords.push(word);
+                        continue;
+                    }
+
+                    const lowerWord = word.toLowerCase();
+
+                    // Check if it's a preserved term
+                    if (preservedMap[lowerWord]) {
+                        processedWords.push(preservedMap[lowerWord]);
+                    }
+                    // Check if it looks like an acronym (2-10 uppercase letters)
+                    else if (/^[A-Z]{2,10}$/.test(word)) {
+                        processedWords.push(word);
+                    }
+                    // First word of sentence - capitalize
+                    else if (isFirstWord) {
+                        processedWords.push(word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+                    }
+                    // All other words - lowercase
+                    else {
+                        processedWords.push(lowerWord);
+                    }
+
+                    isFirstWord = false;
+                }
+
+                result.push(processedWords.join(''));
+            }
+
+            return result.join('');
+        }
+    </script>
+</body>
+</html>
