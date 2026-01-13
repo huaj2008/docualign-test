@@ -671,7 +671,7 @@
                     </button>
                     <div class="tooltip">
                         <div class="tooltip-title">Format Body Text</div>
-                        <div class="tooltip-desc">Apply standard body style: Times New Roman 12pt, 1.15 line spacing, 6pt spacing before/after. Works on selection or paragraph.</div>
+                        <div class="tooltip-desc">Apply Sentence Case + body style: Times New Roman 12pt, 1.15 line spacing, 6pt spacing before/after.</div>
                     </div>
                 </div>
 
@@ -944,8 +944,8 @@
                 document.getElementById('btnTableFormat').addEventListener('click', handleTableFormat);
                 
                 // Captions & References buttons
-                document.getElementById('btnTableCaption').addEventListener('click', () => showCaptionModal('Table'));
-                document.getElementById('btnFigureCaption').addEventListener('click', () => showCaptionModal('Figure'));
+                document.getElementById('btnTableCaption').addEventListener('click', handleTableCaption);
+                document.getElementById('btnFigureCaption').addEventListener('click', handleFigureCaption);
                 document.getElementById('btnCrossRef').addEventListener('click', handleCrossRefStyle);
                 document.getElementById('btnEctdLink').addEventListener('click', handleEctdLinkStyle);
                 
@@ -1244,6 +1244,24 @@
 
                     for (let i = 0; i < paragraphs.items.length; i++) {
                         const para = paragraphs.items[i];
+                        para.load("text");
+                    }
+                    await context.sync();
+
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        const para = paragraphs.items[i];
+                        
+                        // Get text and convert to Sentence Case
+                        let text = para.text;
+                        if (text.endsWith('\r')) {
+                            text = text.slice(0, -1);
+                        }
+                        
+                        if (text.trim() !== '') {
+                            // Convert to Sentence Case
+                            const converted = convertToSentenceCase(text);
+                            para.insertText(converted, Word.InsertLocation.replace);
+                        }
                         
                         // Apply body text formatting
                         para.font.name = "Times New Roman";
@@ -1258,7 +1276,7 @@
                     }
 
                     await context.sync();
-                    showToast(`Body format applied to ${paraCount} paragraph(s)!`, 'success');
+                    showToast(`Body format + Sentence Case applied to ${paraCount} paragraph(s)!`, 'success');
                 });
             } catch (error) {
                 console.error("Body Format Error:", error);
@@ -1273,28 +1291,37 @@
             try {
                 await Word.run(async (context) => {
                     const selection = context.document.getSelection();
-                    const tables = selection.tables;
-                    tables.load("items");
-                    await context.sync();
-
-                    if (tables.items.length === 0) {
-                        // Try to get tables from parent body if cursor is in table
-                        const parentTable = selection.parentTable;
-                        parentTable.load();
+                    
+                    // Try to get the parent table of the selection
+                    let table;
+                    try {
+                        table = selection.parentTableOrNullObject;
                         await context.sync();
                         
-                        if (parentTable) {
-                            await formatTable(parentTable, context);
-                            showToast('Table formatted!', 'success');
-                        } else {
-                            showToast('No table found. Click inside a table first.', 'error');
+                        if (table.isNullObject) {
+                            // Try getting parentTableCell first
+                            const tableCell = selection.parentTableCellOrNullObject;
+                            await context.sync();
+                            
+                            if (!tableCell.isNullObject) {
+                                table = tableCell.parentTable;
+                                await context.sync();
+                            }
                         }
-                    } else {
-                        for (let i = 0; i < tables.items.length; i++) {
-                            await formatTable(tables.items[i], context);
-                        }
-                        showToast(`${tables.items.length} table(s) formatted!`, 'success');
+                    } catch (e) {
+                        // Fallback: try parentTable directly
+                        table = selection.parentTable;
+                        await context.sync();
                     }
+
+                    if (!table || table.isNullObject) {
+                        showToast('Click inside a table first', 'error');
+                        return;
+                    }
+
+                    // Format the table
+                    await formatTable(table, context);
+                    showToast('Table formatted!', 'success');
                 });
             } catch (error) {
                 console.error("Table Format Error:", error);
@@ -1303,13 +1330,13 @@
         }
 
         async function formatTable(table, context) {
-            table.load("rows");
+            // Load table and rows
+            table.load("rows, font, alignment");
             await context.sync();
 
-            // Format entire table
+            // Format entire table font
             table.font.name = "Times New Roman";
             table.font.size = 10;
-            table.alignment = Word.Alignment.centered;
 
             // Load rows
             const rows = table.rows;
@@ -1321,28 +1348,37 @@
                 row.load("cells");
                 await context.sync();
 
-                for (let j = 0; j < row.cells.items.length; j++) {
-                    const cell = row.cells.items[j];
+                const cells = row.cells;
+                cells.load("items");
+                await context.sync();
+
+                for (let j = 0; j < cells.items.length; j++) {
+                    const cell = cells.items[j];
+                    cell.load("body");
+                    await context.sync();
                     
                     if (i === 0) {
                         // Header row: bold, centered
                         cell.body.font.bold = true;
-                        cell.horizontalAlignment = Word.Alignment.centered;
+                        cell.body.paragraphs.load("items");
+                        await context.sync();
+                        
+                        for (let k = 0; k < cell.body.paragraphs.items.length; k++) {
+                            cell.body.paragraphs.items[k].alignment = Word.Alignment.centered;
+                            cell.body.paragraphs.items[k].spaceAfter = 6;
+                            cell.body.paragraphs.items[k].spaceBefore = 6;
+                        }
                     } else {
                         // Body rows: not bold, left-aligned
                         cell.body.font.bold = false;
-                        cell.horizontalAlignment = Word.Alignment.left;
-                    }
-                    
-                    // Apply spacing to all cells
-                    cell.body.paragraphs.load("items");
-                    await context.sync();
-                    
-                    for (let k = 0; k < cell.body.paragraphs.items.length; k++) {
-                        const para = cell.body.paragraphs.items[k];
-                        para.spaceAfter = 6;
-                        para.spaceBefore = 6;
-                        para.lineSpacing = 12; // Single spacing
+                        cell.body.paragraphs.load("items");
+                        await context.sync();
+                        
+                        for (let k = 0; k < cell.body.paragraphs.items.length; k++) {
+                            cell.body.paragraphs.items[k].alignment = Word.Alignment.left;
+                            cell.body.paragraphs.items[k].spaceAfter = 6;
+                            cell.body.paragraphs.items[k].spaceBefore = 6;
+                        }
                     }
                 }
             }
@@ -1354,13 +1390,12 @@
         // CAPTION MODAL FUNCTIONS
         // ============================================
         let currentCaptionType = 'Table';
-        let captionCounter = { Table: 1, Figure: 1 };
 
         function showCaptionModal(type) {
             currentCaptionType = type;
             document.getElementById('captionModalTitle').textContent = `Insert ${type} Caption`;
             document.getElementById('captionInput').value = '';
-            document.getElementById('captionPreview').textContent = `Preview: ${type} ${captionCounter[type]}\t`;
+            document.getElementById('captionPreview').textContent = '';
             document.getElementById('captionModal').classList.add('show');
             document.getElementById('captionInput').focus();
         }
@@ -1373,7 +1408,144 @@
             const input = document.getElementById('captionInput').value;
             const converted = input ? convertToTitleCase(input) : '';
             document.getElementById('captionPreview').textContent = 
-                `Preview: ${currentCaptionType} ${captionCounter[currentCaptionType]}\t${converted}`;
+                converted ? `Preview: ${currentCaptionType} #\t${converted}` : '';
+        }
+
+        // ============================================
+        // SMART CAPTION HANDLER
+        // Matches VBA logic:
+        // - If line has 2+ words: format as caption (add prefix if missing)
+        // - If line empty/1 word: prompt for caption text
+        // ============================================
+        async function handleTableCaption() {
+            await handleSmartCaption('Table');
+        }
+
+        async function handleFigureCaption() {
+            await handleSmartCaption('Figure');
+        }
+
+        async function handleSmartCaption(captionType) {
+            try {
+                await Word.run(async (context) => {
+                    const selection = context.document.getSelection();
+                    const paragraphs = selection.paragraphs;
+                    paragraphs.load("items");
+                    await context.sync();
+
+                    if (paragraphs.items.length === 0) {
+                        showToast('No paragraph found', 'error');
+                        return;
+                    }
+
+                    const para = paragraphs.items[0];
+                    para.load("text");
+                    await context.sync();
+
+                    let currentLine = para.text;
+                    // Remove trailing paragraph mark
+                    if (currentLine.endsWith('\r')) {
+                        currentLine = currentLine.slice(0, -1);
+                    }
+                    currentLine = currentLine.trim();
+
+                    // Count words
+                    const words = currentLine.split(/\s+/).filter(w => w.length > 0);
+                    const wordCount = words.length;
+
+                    if (wordCount >= 2) {
+                        // Existing text - format as caption
+                        await formatExistingAsCaption(para, currentLine, captionType, context);
+                    } else {
+                        // Empty or single word - show modal for input
+                        currentCaptionType = captionType;
+                        showCaptionModal(captionType);
+                    }
+                });
+            } catch (error) {
+                console.error("Caption Error:", error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function formatExistingAsCaption(para, currentLine, captionType, context) {
+            // Check if it already has the label prefix (Table or Figure)
+            const labelRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
+            const hasLabel = labelRegex.test(currentLine);
+
+            let captionText = '';
+
+            if (hasLabel) {
+                // Already has "Table X" or "Figure X" prefix
+                // Extract text after the prefix (handle : or tab or space after number)
+                
+                // Try colon first
+                let colonPos = currentLine.indexOf(':');
+                if (colonPos > 0) {
+                    captionText = currentLine.substring(colonPos + 1).trim();
+                } else {
+                    // Try tab
+                    let tabPos = currentLine.indexOf('\t');
+                    if (tabPos > 0) {
+                        captionText = currentLine.substring(tabPos + 1).trim();
+                    } else {
+                        // Find space after the number (e.g., "Table 1 Some Text")
+                        const match = currentLine.match(new RegExp(`^${captionType}\\s+\\d+\\s+(.*)`, 'i'));
+                        if (match) {
+                            captionText = match[1].trim();
+                        } else {
+                            captionText = currentLine;
+                        }
+                    }
+                }
+            } else {
+                // No prefix - use the whole line as caption text
+                captionText = currentLine;
+            }
+
+            // Convert to Title Case
+            const convertedCaption = convertToTitleCase(captionText);
+
+            // Get the next caption number by counting existing captions
+            const body = context.document.body;
+            const allParagraphs = body.paragraphs;
+            allParagraphs.load("items");
+            await context.sync();
+
+            let captionNumber = 1;
+            for (let i = 0; i < allParagraphs.items.length; i++) {
+                const p = allParagraphs.items[i];
+                p.load("text");
+            }
+            await context.sync();
+
+            // Count existing captions of this type before current position
+            let foundCurrent = false;
+            for (let i = 0; i < allParagraphs.items.length; i++) {
+                const pText = allParagraphs.items[i].text.trim();
+                if (pText === para.text.trim()) {
+                    foundCurrent = true;
+                    break;
+                }
+                if (new RegExp(`^${captionType}\\s+\\d+`, 'i').test(pText)) {
+                    captionNumber++;
+                }
+            }
+
+            // Create the formatted caption with tab separator
+            const formattedCaption = `${captionType} ${captionNumber}\t${convertedCaption}`;
+
+            // Replace the paragraph text
+            para.insertText(formattedCaption, Word.InsertLocation.replace);
+
+            // Apply formatting
+            para.font.name = "Times New Roman";
+            para.font.size = 12;
+            para.font.bold = true;
+            para.alignment = Word.Alignment.left;
+
+            await context.sync();
+            showToast(`${captionType} caption formatted!`, 'success');
         }
 
         async function insertCaption() {
@@ -1392,9 +1564,29 @@
                     
                     // Convert caption to Title Case
                     const formattedCaption = convertToTitleCase(captionText);
+
+                    // Count existing captions to get the next number
+                    const body = context.document.body;
+                    const allParagraphs = body.paragraphs;
+                    allParagraphs.load("items");
+                    await context.sync();
+
+                    let captionNumber = 1;
+                    for (let i = 0; i < allParagraphs.items.length; i++) {
+                        const p = allParagraphs.items[i];
+                        p.load("text");
+                    }
+                    await context.sync();
+
+                    for (let i = 0; i < allParagraphs.items.length; i++) {
+                        const pText = allParagraphs.items[i].text.trim();
+                        if (new RegExp(`^${currentCaptionType}\\s+\\d+`, 'i').test(pText)) {
+                            captionNumber++;
+                        }
+                    }
                     
                     // Create the full caption text with tab
-                    const fullCaption = `${currentCaptionType} ${captionCounter[currentCaptionType]}\t${formattedCaption}`;
+                    const fullCaption = `${currentCaptionType} ${captionNumber}\t${formattedCaption}`;
                     
                     // Insert the caption
                     const captionRange = selection.insertText(fullCaption, Word.InsertLocation.replace);
@@ -1409,9 +1601,6 @@
                     para.alignment = Word.Alignment.left;
 
                     await context.sync();
-                    
-                    // Increment counter for next caption
-                    captionCounter[currentCaptionType]++;
                     
                     showToast(`${currentCaptionType} caption inserted!`, 'success');
                 });
