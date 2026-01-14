@@ -16,7 +16,7 @@
     
     <style>
         /* ============================================
-           CSS VARIABLES - Professional Document Theme. 
+           CSS VARIABLES - Professional Document Theme
            ============================================ */
         :root {
             --primary: #1e40af;
@@ -546,6 +546,33 @@
             font-style: italic;
         }
 
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .char-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            font-size: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .char-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
         /* ============================================
            COMING SOON BADGE
            ============================================ */
@@ -653,6 +680,18 @@
                         <div class="tooltip-desc">Choose Title Case or Sentence Case for each heading level (1-6) individually.</div>
                     </div>
                 </div>
+
+                <!-- Heading Format (H1=Title, others=Sentence) -->
+                <div class="tooltip-container">
+                    <button class="btn secondary" id="btnHeadingFormat">
+                        <div class="btn-icon">H↓</div>
+                        <span class="btn-label">Heading Format</span>
+                    </button>
+                    <div class="tooltip">
+                        <div class="tooltip-title">Heading Format</div>
+                        <div class="tooltip-desc">Quick format: H1 = Title Case, H2-H6 = Sentence Case. Applies to all headings in document.</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -753,10 +792,9 @@
                 <span class="section-title">Document Tools</span>
             </div>
             <div class="button-grid">
-                <!-- Special Characters (Coming Soon) -->
+                <!-- Special Characters -->
                 <div class="tooltip-container">
-                    <button class="btn success" id="btnSpecialChars" disabled>
-                        <span class="coming-soon">Soon</span>
+                    <button class="btn success" id="btnSpecialChars">
                         <div class="btn-icon">×℃</div>
                         <span class="btn-label">Special Chars</span>
                     </button>
@@ -766,10 +804,9 @@
                     </div>
                 </div>
 
-                <!-- Latin Terms (Coming Soon) -->
+                <!-- Latin Terms -->
                 <div class="tooltip-container">
-                    <button class="btn success" id="btnLatinTerms" disabled>
-                        <span class="coming-soon">Soon</span>
+                    <button class="btn success" id="btnLatinTerms">
                         <div class="btn-icon">𝑖𝑡</div>
                         <span class="btn-label">Latin Terms</span>
                     </button>
@@ -779,10 +816,9 @@
                     </div>
                 </div>
 
-                <!-- Insert TOC (Coming Soon) -->
+                <!-- Insert TOC -->
                 <div class="tooltip-container">
-                    <button class="btn success" id="btnInsertTOC" disabled>
-                        <span class="coming-soon">Soon</span>
+                    <button class="btn success" id="btnInsertTOC">
                         <div class="btn-icon">📑</div>
                         <span class="btn-label">Insert TOC</span>
                     </button>
@@ -812,7 +848,7 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-dot"></div>
-        <span>Ready • v1.3.0</span>
+        <span>Ready • v1.4.0</span>
     </div>
 
     <!-- Heading Options Modal -->
@@ -901,6 +937,41 @@
         </div>
     </div>
 
+    <!-- Special Characters Modal -->
+    <div class="modal-overlay" id="specialCharsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Insert Special Character</span>
+                <button class="modal-close" id="specialCharsClose">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Click a character to insert at cursor:</p>
+                <div class="char-grid">
+                    <button class="char-btn" data-char="×" title="Multiplication sign">×</button>
+                    <button class="char-btn" data-char="℃" title="Degree Celsius">℃</button>
+                    <button class="char-btn" data-char="°" title="Degree symbol">°</button>
+                    <button class="char-btn" data-char="∞" title="Infinity">∞</button>
+                    <button class="char-btn" data-char="±" title="Plus-minus">±</button>
+                    <button class="char-btn" data-char="≤" title="Less than or equal">≤</button>
+                    <button class="char-btn" data-char="≥" title="Greater than or equal">≥</button>
+                    <button class="char-btn" data-char="≠" title="Not equal">≠</button>
+                    <button class="char-btn" data-char="≈" title="Approximately">≈</button>
+                    <button class="char-btn" data-char="μ" title="Micro (mu)">μ</button>
+                    <button class="char-btn" data-char="α" title="Alpha">α</button>
+                    <button class="char-btn" data-char="β" title="Beta">β</button>
+                    <button class="char-btn" data-char="γ" title="Gamma">γ</button>
+                    <button class="char-btn" data-char="δ" title="Delta">δ</button>
+                    <button class="char-btn" data-char="λ" title="Lambda">λ</button>
+                    <button class="char-btn" data-char="σ" title="Sigma">σ</button>
+                    <button class="char-btn" data-char="®" title="Registered">®</button>
+                    <button class="char-btn" data-char="™" title="Trademark">™</button>
+                    <button class="char-btn" data-char="©" title="Copyright">©</button>
+                    <button class="char-btn" data-char="→" title="Arrow right">→</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast" id="toast">
         <span class="toast-icon">✓</span>
@@ -938,6 +1009,7 @@
                 document.getElementById('btnSentenceCase').addEventListener('click', handleSentenceCase);
                 document.getElementById('btnTitleAllHeadings').addEventListener('click', handleTitleAllHeadings);
                 document.getElementById('btnHeadingDialog').addEventListener('click', showHeadingModal);
+                document.getElementById('btnHeadingFormat').addEventListener('click', handleHeadingFormat);
                 
                 // Body & Tables buttons
                 document.getElementById('btnBodyFormat').addEventListener('click', handleBodyFormat);
@@ -948,6 +1020,11 @@
                 document.getElementById('btnFigureCaption').addEventListener('click', handleFigureCaption);
                 document.getElementById('btnCrossRef').addEventListener('click', handleCrossRefStyle);
                 document.getElementById('btnEctdLink').addEventListener('click', handleEctdLinkStyle);
+                
+                // Document Tools buttons
+                document.getElementById('btnSpecialChars').addEventListener('click', showSpecialCharsModal);
+                document.getElementById('btnLatinTerms').addEventListener('click', handleLatinTerms);
+                document.getElementById('btnInsertTOC').addEventListener('click', handleInsertTOC);
                 
                 // Heading Modal events
                 document.getElementById('modalClose').addEventListener('click', hideHeadingModal);
@@ -965,6 +1042,15 @@
                     if (e.target === this) hideCaptionModal();
                 });
                 document.getElementById('captionInput').addEventListener('input', updateCaptionPreview);
+                
+                // Special Characters Modal events
+                document.getElementById('specialCharsClose').addEventListener('click', hideSpecialCharsModal);
+                document.getElementById('specialCharsModal').addEventListener('click', function(e) {
+                    if (e.target === this) hideSpecialCharsModal();
+                });
+                document.querySelectorAll('.char-btn').forEach(btn => {
+                    btn.addEventListener('click', () => insertSpecialChar(btn.dataset.char));
+                });
                 
                 // Show ready state
                 showToast('DocuAlign ready!', 'success');
@@ -1649,6 +1735,170 @@
                 });
             } catch (error) {
                 console.error("eCTD Link Style Error:", error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // HEADING FORMAT HANDLER (H1=Title, H2-H6=Sentence)
+        // ============================================
+        async function handleHeadingFormat() {
+            try {
+                await Word.run(async (context) => {
+                    const body = context.document.body;
+                    const paragraphs = body.paragraphs;
+                    paragraphs.load("items");
+                    await context.sync();
+
+                    let headingCount = 0;
+
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        const para = paragraphs.items[i];
+                        para.load("style, text");
+                    }
+                    await context.sync();
+
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        const para = paragraphs.items[i];
+                        const styleName = para.style.toLowerCase();
+                        
+                        let headingLevel = 0;
+                        if (styleName.includes('heading 1') || styleName === 'h1' || styleName === 'title') headingLevel = 1;
+                        else if (styleName.includes('heading 2') || styleName === 'h2') headingLevel = 2;
+                        else if (styleName.includes('heading 3') || styleName === 'h3') headingLevel = 3;
+                        else if (styleName.includes('heading 4') || styleName === 'h4') headingLevel = 4;
+                        else if (styleName.includes('heading 5') || styleName === 'h5') headingLevel = 5;
+                        else if (styleName.includes('heading 6') || styleName === 'h6') headingLevel = 6;
+                        
+                        if (headingLevel > 0) {
+                            let text = para.text;
+                            if (text.endsWith('\r')) {
+                                text = text.slice(0, -1);
+                            }
+                            
+                            if (text.trim() !== '') {
+                                let converted;
+                                if (headingLevel === 1) {
+                                    // H1 = Title Case
+                                    converted = convertToTitleCase(text);
+                                } else {
+                                    // H2-H6 = Sentence Case
+                                    converted = convertToSentenceCase(text);
+                                }
+                                para.insertText(converted, Word.InsertLocation.replace);
+                                headingCount++;
+                            }
+                        }
+                    }
+
+                    await context.sync();
+                    
+                    if (headingCount > 0) {
+                        showToast(`Formatted ${headingCount} heading(s)!`, 'success');
+                    } else {
+                        showToast('No headings found', 'error');
+                    }
+                });
+            } catch (error) {
+                console.error("Heading Format Error:", error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // SPECIAL CHARACTERS MODAL
+        // ============================================
+        function showSpecialCharsModal() {
+            document.getElementById('specialCharsModal').classList.add('show');
+        }
+
+        function hideSpecialCharsModal() {
+            document.getElementById('specialCharsModal').classList.remove('show');
+        }
+
+        async function insertSpecialChar(char) {
+            hideSpecialCharsModal();
+            try {
+                await Word.run(async (context) => {
+                    const selection = context.document.getSelection();
+                    selection.insertText(char, Word.InsertLocation.replace);
+                    await context.sync();
+                    showToast(`Inserted: ${char}`, 'success');
+                });
+            } catch (error) {
+                console.error("Special Char Error:", error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // LATIN TERMS HANDLER
+        // ============================================
+        async function handleLatinTerms() {
+            const latinTerms = ['in vivo', 'in vitro', 'in situ', 'ex vivo', 'in utero'];
+            
+            try {
+                await Word.run(async (context) => {
+                    let totalFound = 0;
+                    
+                    for (const term of latinTerms) {
+                        const searchResults = context.document.body.search(term, {
+                            matchCase: false,
+                            matchWholeWord: true
+                        });
+                        searchResults.load("items");
+                        await context.sync();
+                        
+                        for (let i = 0; i < searchResults.items.length; i++) {
+                            searchResults.items[i].font.italic = true;
+                            totalFound++;
+                        }
+                    }
+                    
+                    await context.sync();
+                    
+                    if (totalFound > 0) {
+                        showToast(`Italicized ${totalFound} Latin term(s)!`, 'success');
+                    } else {
+                        showToast('No Latin terms found', 'error');
+                    }
+                });
+            } catch (error) {
+                console.error("Latin Terms Error:", error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // INSERT TOC HANDLER
+        // ============================================
+        async function handleInsertTOC() {
+            try {
+                await Word.run(async (context) => {
+                    const selection = context.document.getSelection();
+                    
+                    // Insert "Table of Contents" title
+                    const titleRange = selection.insertText("Table of Contents", Word.InsertLocation.before);
+                    titleRange.font.name = "Times New Roman";
+                    titleRange.font.size = 14;
+                    titleRange.font.bold = true;
+                    
+                    // Get the paragraph and center it
+                    const titlePara = titleRange.paragraphs.getFirst();
+                    titlePara.alignment = Word.Alignment.centered;
+                    titlePara.spaceAfter = 12;
+                    
+                    // Insert paragraph break after title
+                    selection.insertBreak(Word.BreakType.line, Word.InsertLocation.after);
+                    
+                    await context.sync();
+                    
+                    // Note: Word JS API doesn't have direct TOC insertion
+                    // User will need to use Word's built-in TOC feature
+                    showToast('TOC title inserted. Use References > Table of Contents to insert the actual TOC.', 'success');
+                });
+            } catch (error) {
+                console.error("Insert TOC Error:", error);
                 showToast('Error: ' + error.message, 'error');
             }
         }
