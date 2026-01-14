@@ -742,8 +742,8 @@
                         <span class="btn-label">Format Table Cap</span>
                     </button>
                     <div class="tooltip">
-                        <div class="tooltip-title">Format Table Caption</div>
-                        <div class="tooltip-desc">Format existing table caption: Title Case, TNR 12pt Bold, Left-aligned. Click on caption first.</div>
+                        <div class="tooltip-title">Format All Table Captions</div>
+                        <div class="tooltip-desc">Find all "Table X..." in document. Apply: Title Case, Tab separator, TNR 12pt Bold, Left-aligned.</div>
                     </div>
                 </div>
 
@@ -754,8 +754,8 @@
                         <span class="btn-label">Format Figure Cap</span>
                     </button>
                     <div class="tooltip">
-                        <div class="tooltip-title">Format Figure Caption</div>
-                        <div class="tooltip-desc">Format existing figure caption: Title Case, TNR 12pt Bold, Left-aligned. Click on caption first.</div>
+                        <div class="tooltip-title">Format All Figure Captions</div>
+                        <div class="tooltip-desc">Find all "Figure X..." in document. Apply: Title Case, Tab separator, TNR 12pt Bold, Left-aligned.</div>
                     </div>
                 </div>
 
@@ -1437,82 +1437,99 @@
         }
 
         // ============================================
-        // FORMAT CAPTION HANDLERS (Format only, no insertion)
-        // User inserts captions via Word's References → Insert Caption
+        // FORMAT CAPTION HANDLERS
+        // Finds ALL captions in document and formats them
         // ============================================
         async function handleTableCaption() {
-            await formatCaptionParagraph('Table');
+            await formatAllCaptions('Table');
         }
 
         async function handleFigureCaption() {
-            await formatCaptionParagraph('Figure');
+            await formatAllCaptions('Figure');
         }
 
-        async function formatCaptionParagraph(captionType) {
+        async function formatAllCaptions(captionType) {
             try {
                 await Word.run(async (context) => {
-                    const selection = context.document.getSelection();
-                    const paragraphs = selection.paragraphs;
+                    const body = context.document.body;
+                    const paragraphs = body.paragraphs;
                     paragraphs.load("items");
                     await context.sync();
 
-                    if (paragraphs.items.length === 0) {
-                        showToast('No paragraph found', 'error');
-                        return;
+                    // Load all paragraph text
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        paragraphs.items[i].load("text");
                     }
-
-                    const para = paragraphs.items[0];
-                    para.load("text");
                     await context.sync();
 
-                    let text = para.text;
-                    if (text.endsWith('\r')) {
-                        text = text.slice(0, -1);
-                    }
-
-                    if (text.trim() === '') {
-                        showToast('Empty paragraph. Insert caption first using References → Insert Caption.', 'error');
-                        return;
-                    }
-
-                    // Check if it looks like a caption (starts with Table/Figure and has a number)
+                    let formattedCount = 0;
                     const captionRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
-                    
-                    if (captionRegex.test(text.trim())) {
-                        // It's a caption - extract and format the text part
-                        let captionText = '';
+
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        const para = paragraphs.items[i];
+                        let text = para.text;
                         
-                        // Find separator (tab, colon, or space after number)
-                        let tabPos = text.indexOf('\t');
-                        let colonPos = text.indexOf(':');
-                        
-                        if (tabPos > 0) {
-                            captionText = text.substring(tabPos + 1).trim();
-                        } else if (colonPos > 0) {
-                            captionText = text.substring(colonPos + 1).trim();
-                        } else {
-                            // Try to find text after "Table X " or "Figure X "
-                            const match = text.match(new RegExp(`^${captionType}\\s+\\d+\\s+(.*)`, 'i'));
-                            if (match) {
-                                captionText = match[1].trim();
-                            }
+                        // Remove trailing paragraph mark
+                        if (text.endsWith('\r')) {
+                            text = text.slice(0, -1);
                         }
 
-                        // Convert caption text to Title Case (preserve the "Table X" part)
-                        if (captionText) {
-                            const convertedCaption = convertToTitleCase(captionText);
-                            // We can't easily replace just part of the text with fields, so just format
+                        // Check if this is a caption (starts with "Table X" or "Figure X")
+                        if (captionRegex.test(text.trim())) {
+                            // Extract the caption text part (after Table X or Figure X)
+                            let captionText = '';
+                            let prefix = '';
+                            
+                            // Find the prefix (Table 1, Figure 2, etc.)
+                            const prefixMatch = text.match(new RegExp(`^(${captionType}\\s+\\d+)`, 'i'));
+                            if (prefixMatch) {
+                                prefix = prefixMatch[1];
+                            }
+                            
+                            // Find separator and extract caption text
+                            let tabPos = text.indexOf('\t');
+                            let colonPos = text.indexOf(':');
+                            
+                            if (tabPos > 0) {
+                                captionText = text.substring(tabPos + 1).trim();
+                            } else if (colonPos > 0) {
+                                captionText = text.substring(colonPos + 1).trim();
+                            } else {
+                                // Try to find text after "Table X " or "Figure X "
+                                const match = text.match(new RegExp(`^${captionType}\\s+\\d+\\s+(.*)`, 'i'));
+                                if (match) {
+                                    captionText = match[1].trim();
+                                }
+                            }
+
+                            // Convert caption text to Title Case
+                            if (captionText) {
+                                const convertedCaption = convertToTitleCase(captionText);
+                                
+                                // Rebuild the caption with tab separator
+                                const newText = `${prefix}\t${convertedCaption}`;
+                                
+                                // Replace paragraph text
+                                para.insertText(newText, Word.InsertLocation.replace);
+                            }
+
+                            // Apply formatting
+                            para.font.name = "Times New Roman";
+                            para.font.size = 12;
+                            para.font.bold = true;
+                            para.alignment = Word.Alignment.left;
+                            
+                            formattedCount++;
                         }
                     }
 
-                    // Apply formatting to entire paragraph
-                    para.font.name = "Times New Roman";
-                    para.font.size = 12;
-                    para.font.bold = true;
-                    para.alignment = Word.Alignment.left;
-
                     await context.sync();
-                    showToast(`${captionType} caption formatted!`, 'success');
+
+                    if (formattedCount > 0) {
+                        showToast(`Formatted ${formattedCount} ${captionType.toLowerCase()} caption(s)!`, 'success');
+                    } else {
+                        showToast(`No ${captionType.toLowerCase()} captions found`, 'error');
+                    }
                 });
             } catch (error) {
                 console.error("Format Caption Error:", error);
