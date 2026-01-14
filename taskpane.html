@@ -16,7 +16,7 @@
     
     <style>
         /* ============================================
-           CSS VARIABLES - Professional Document Theme 
+           CSS VARIABLES - Professional Document Theme
            ============================================ */
         :root {
             --primary: #1e40af;
@@ -816,18 +816,6 @@
                     </div>
                 </div>
 
-                <!-- Insert TOC -->
-                <div class="tooltip-container">
-                    <button class="btn success" id="btnInsertTOC">
-                        <div class="btn-icon">📑</div>
-                        <span class="btn-label">Insert TOC</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Insert Table of Contents</div>
-                        <div class="tooltip-desc">Insert formatted TOC with title, hyperlinks, levels 1-3. TNR 12pt entries, 14pt bold centered title.</div>
-                    </div>
-                </div>
-
                 <!-- Style Scanner (Coming Soon) -->
                 <div class="tooltip-container">
                     <button class="btn success" id="btnStyleScanner" disabled>
@@ -843,12 +831,69 @@
             </div>
         </div>
 
+        <!-- TOC/LOT/LOF Section -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon text">📑</div>
+                <span class="section-title">Table of Contents</span>
+            </div>
+            <div class="button-grid">
+                <!-- Insert TOC -->
+                <div class="tooltip-container">
+                    <button class="btn primary" id="btnInsertTOC">
+                        <div class="btn-icon">TOC</div>
+                        <span class="btn-label">Insert TOC</span>
+                    </button>
+                    <div class="tooltip">
+                        <div class="tooltip-title">Insert Table of Contents</div>
+                        <div class="tooltip-desc">Insert "Table of Contents" title. TNR 14pt bold centered, 12pt space after.</div>
+                    </div>
+                </div>
+
+                <!-- Insert LOT -->
+                <div class="tooltip-container">
+                    <button class="btn primary" id="btnInsertLOT">
+                        <div class="btn-icon">LOT</div>
+                        <span class="btn-label">Insert LOT</span>
+                    </button>
+                    <div class="tooltip">
+                        <div class="tooltip-title">Insert List of Tables</div>
+                        <div class="tooltip-desc">Insert "List of Tables" title. TNR 14pt bold centered, 12pt space after.</div>
+                    </div>
+                </div>
+
+                <!-- Insert LOF -->
+                <div class="tooltip-container">
+                    <button class="btn primary" id="btnInsertLOF">
+                        <div class="btn-icon">LOF</div>
+                        <span class="btn-label">Insert LOF</span>
+                    </button>
+                    <div class="tooltip">
+                        <div class="tooltip-title">Insert List of Figures</div>
+                        <div class="tooltip-desc">Insert "List of Figures" title. TNR 14pt bold centered, 12pt space after.</div>
+                    </div>
+                </div>
+
+                <!-- Update All -->
+                <div class="tooltip-container">
+                    <button class="btn accent" id="btnUpdateAll">
+                        <div class="btn-icon">🔄</div>
+                        <span class="btn-label">Update All</span>
+                    </button>
+                    <div class="tooltip">
+                        <div class="tooltip-title">Update All Fields</div>
+                        <div class="tooltip-desc">Update all fields in document including TOC, LOT, LOF, cross-references, and page numbers.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-dot"></div>
-        <span>Ready • v1.4.0</span>
+        <span>Ready • v1.5.0</span>
     </div>
 
     <!-- Heading Options Modal -->
@@ -1024,7 +1069,12 @@
                 // Document Tools buttons
                 document.getElementById('btnSpecialChars').addEventListener('click', showSpecialCharsModal);
                 document.getElementById('btnLatinTerms').addEventListener('click', handleLatinTerms);
-                document.getElementById('btnInsertTOC').addEventListener('click', handleInsertTOC);
+                
+                // TOC/LOT/LOF buttons
+                document.getElementById('btnInsertTOC').addEventListener('click', () => handleInsertListTitle('Table of Contents'));
+                document.getElementById('btnInsertLOT').addEventListener('click', () => handleInsertListTitle('List of Tables'));
+                document.getElementById('btnInsertLOF').addEventListener('click', () => handleInsertListTitle('List of Figures'));
+                document.getElementById('btnUpdateAll').addEventListener('click', handleUpdateAll);
                 
                 // Heading Modal events
                 document.getElementById('modalClose').addEventListener('click', hideHeadingModal);
@@ -1870,15 +1920,15 @@
         }
 
         // ============================================
-        // INSERT TOC HANDLER
+        // INSERT TOC/LOT/LOF TITLE HANDLER
         // ============================================
-        async function handleInsertTOC() {
+        async function handleInsertListTitle(title) {
             try {
                 await Word.run(async (context) => {
                     const selection = context.document.getSelection();
                     
-                    // Insert "Table of Contents" title
-                    const titleRange = selection.insertText("Table of Contents", Word.InsertLocation.before);
+                    // Insert title
+                    const titleRange = selection.insertText(title, Word.InsertLocation.replace);
                     titleRange.font.name = "Times New Roman";
                     titleRange.font.size = 14;
                     titleRange.font.bold = true;
@@ -1888,17 +1938,44 @@
                     titlePara.alignment = Word.Alignment.centered;
                     titlePara.spaceAfter = 12;
                     
-                    // Insert paragraph break after title
-                    selection.insertBreak(Word.BreakType.line, Word.InsertLocation.after);
+                    await context.sync();
+                    
+                    showToast(`"${title}" title inserted!`, 'success');
+                });
+            } catch (error) {
+                console.error("Insert Title Error:", error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // UPDATE ALL FIELDS HANDLER
+        // ============================================
+        async function handleUpdateAll() {
+            try {
+                await Word.run(async (context) => {
+                    // Get all fields in the document
+                    const body = context.document.body;
+                    const fields = body.fields;
+                    fields.load("items");
+                    await context.sync();
+                    
+                    // Update each field
+                    for (let i = 0; i < fields.items.length; i++) {
+                        fields.items[i].updateResult();
+                    }
                     
                     await context.sync();
                     
-                    // Note: Word JS API doesn't have direct TOC insertion
-                    // User will need to use Word's built-in TOC feature
-                    showToast('TOC title inserted. Use References > Table of Contents to insert the actual TOC.', 'success');
+                    const fieldCount = fields.items.length;
+                    if (fieldCount > 0) {
+                        showToast(`Updated ${fieldCount} field(s)!`, 'success');
+                    } else {
+                        showToast('No fields to update', 'error');
+                    }
                 });
             } catch (error) {
-                console.error("Insert TOC Error:", error);
+                console.error("Update All Error:", error);
                 showToast('Error: ' + error.message, 'error');
             }
         }
