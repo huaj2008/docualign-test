@@ -16,7 +16,7 @@
     
     <style>
         /* ============================================
-           CSS VARIABLES - Professional Document Theme 
+           CSS VARIABLES - Professional Document Theme
            ============================================ */
         :root {
             --primary: #1e40af;
@@ -1584,46 +1584,88 @@
             // Convert to Title Case
             const convertedCaption = convertToTitleCase(captionText);
 
-            // Get the next caption number by counting existing captions
-            const body = context.document.body;
-            const allParagraphs = body.paragraphs;
-            allParagraphs.load("items");
+            // Create OOXML with SEQ field for proper caption
+            const captionOoxml = `
+                <pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                    <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                        <pkg:xmlData>
+                            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                <w:body>
+                                    <w:p>
+                                        <w:pPr>
+                                            <w:pStyle w:val="Caption"/>
+                                            <w:jc w:val="left"/>
+                                        </w:pPr>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:t>${captionType} </w:t>
+                                        </w:r>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:fldChar w:fldCharType="begin"/>
+                                        </w:r>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:instrText xml:space="preserve"> SEQ ${captionType} \\* ARABIC </w:instrText>
+                                        </w:r>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:fldChar w:fldCharType="separate"/>
+                                        </w:r>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:t>1</w:t>
+                                        </w:r>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:fldChar w:fldCharType="end"/>
+                                        </w:r>
+                                        <w:r>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                <w:b/>
+                                                <w:sz w:val="24"/>
+                                            </w:rPr>
+                                            <w:tab/>
+                                            <w:t>${convertedCaption}</w:t>
+                                        </w:r>
+                                    </w:p>
+                                </w:body>
+                            </w:document>
+                        </pkg:xmlData>
+                    </pkg:part>
+                </pkg:package>`;
+
+            // Replace paragraph with OOXML caption
+            const paraRange = para.getRange();
+            paraRange.insertOoxml(captionOoxml, Word.InsertLocation.replace);
+
             await context.sync();
-
-            let captionNumber = 1;
-            for (let i = 0; i < allParagraphs.items.length; i++) {
-                const p = allParagraphs.items[i];
-                p.load("text");
-            }
-            await context.sync();
-
-            // Count existing captions of this type before current position
-            let foundCurrent = false;
-            for (let i = 0; i < allParagraphs.items.length; i++) {
-                const pText = allParagraphs.items[i].text.trim();
-                if (pText === para.text.trim()) {
-                    foundCurrent = true;
-                    break;
-                }
-                if (new RegExp(`^${captionType}\\s+\\d+`, 'i').test(pText)) {
-                    captionNumber++;
-                }
-            }
-
-            // Create the formatted caption with tab separator
-            const formattedCaption = `${captionType} ${captionNumber}\t${convertedCaption}`;
-
-            // Replace the paragraph text
-            para.insertText(formattedCaption, Word.InsertLocation.replace);
-
-            // Apply formatting
-            para.font.name = "Times New Roman";
-            para.font.size = 12;
-            para.font.bold = true;
-            para.alignment = Word.Alignment.left;
-
-            await context.sync();
-            showToast(`${captionType} caption formatted!`, 'success');
+            showToast(`${captionType} caption with SEQ field created! Press F9 to update numbering.`, 'success');
         }
 
         async function insertCaption() {
@@ -1643,44 +1685,88 @@
                     // Convert caption to Title Case
                     const formattedCaption = convertToTitleCase(captionText);
 
-                    // Count existing captions to get the next number
-                    const body = context.document.body;
-                    const allParagraphs = body.paragraphs;
-                    allParagraphs.load("items");
-                    await context.sync();
+                    // Create OOXML with SEQ field for proper caption
+                    const captionOoxml = `
+                        <pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                            <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                                <pkg:xmlData>
+                                    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                        <w:body>
+                                            <w:p>
+                                                <w:pPr>
+                                                    <w:pStyle w:val="Caption"/>
+                                                    <w:jc w:val="left"/>
+                                                </w:pPr>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:t>${currentCaptionType} </w:t>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:fldChar w:fldCharType="begin"/>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:instrText xml:space="preserve"> SEQ ${currentCaptionType} \\* ARABIC </w:instrText>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:fldChar w:fldCharType="separate"/>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:t>1</w:t>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:fldChar w:fldCharType="end"/>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:b/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:tab/>
+                                                    <w:t>${formattedCaption}</w:t>
+                                                </w:r>
+                                            </w:p>
+                                        </w:body>
+                                    </w:document>
+                                </pkg:xmlData>
+                            </pkg:part>
+                        </pkg:package>`;
+                    
+                    // Insert the caption with SEQ field
+                    selection.insertOoxml(captionOoxml, Word.InsertLocation.replace);
 
-                    let captionNumber = 1;
-                    for (let i = 0; i < allParagraphs.items.length; i++) {
-                        const p = allParagraphs.items[i];
-                        p.load("text");
-                    }
-                    await context.sync();
-
-                    for (let i = 0; i < allParagraphs.items.length; i++) {
-                        const pText = allParagraphs.items[i].text.trim();
-                        if (new RegExp(`^${currentCaptionType}\\s+\\d+`, 'i').test(pText)) {
-                            captionNumber++;
-                        }
-                    }
-                    
-                    // Create the full caption text with tab
-                    const fullCaption = `${currentCaptionType} ${captionNumber}\t${formattedCaption}`;
-                    
-                    // Insert the caption
-                    const captionRange = selection.insertText(fullCaption, Word.InsertLocation.replace);
-                    
-                    // Format the caption
-                    captionRange.font.name = "Times New Roman";
-                    captionRange.font.size = 12;
-                    captionRange.font.bold = true;
-                    
-                    // Get the paragraph and set alignment
-                    const para = captionRange.paragraphs.getFirst();
-                    para.alignment = Word.Alignment.left;
-
                     await context.sync();
                     
-                    showToast(`${currentCaptionType} caption inserted!`, 'success');
+                    showToast(`${currentCaptionType} caption inserted! Press F9 to update numbering.`, 'success');
                 });
             } catch (error) {
                 console.error("Caption Error:", error);
