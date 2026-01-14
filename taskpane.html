@@ -16,7 +16,7 @@
     
     <style>
         /* ============================================
-           CSS VARIABLES - Professional Document Theme    
+           CSS VARIABLES - Professional Document Theme
            ============================================ */
         :root {
             --primary: #1e40af;
@@ -660,7 +660,7 @@
                 <!-- Title Case All Headings -->
                 <div class="tooltip-container">
                     <button class="btn secondary" id="btnTitleAllHeadings">
-                        <div class="btn-icon">H₁</div>
+                        <div class="btn-icon">Ht</div>
                         <span class="btn-label">All Headings</span>
                     </button>
                     <div class="tooltip">
@@ -672,7 +672,7 @@
                 <!-- Heading Case Dialog -->
                 <div class="tooltip-container">
                     <button class="btn secondary" id="btnHeadingDialog">
-                        <div class="btn-icon">⚙</div>
+                        <div class="btn-icon">H⚙</div>
                         <span class="btn-label">Heading Options</span>
                     </button>
                     <div class="tooltip">
@@ -684,7 +684,7 @@
                 <!-- Heading Format (H1=Title, others=Sentence) -->
                 <div class="tooltip-container">
                     <button class="btn secondary" id="btnHeadingFormat">
-                        <div class="btn-icon">H↓</div>
+                        <div class="btn-icon">Hs</div>
                         <span class="btn-label">Heading Format</span>
                     </button>
                     <div class="tooltip">
@@ -1920,31 +1920,100 @@
         }
 
         // ============================================
-        // INSERT TOC/LOT/LOF TITLE HANDLER
+        // INSERT TOC/LOT/LOF WITH ACTUAL FIELDS
         // ============================================
         async function handleInsertListTitle(title) {
             try {
                 await Word.run(async (context) => {
                     const selection = context.document.getSelection();
                     
-                    // Insert title
-                    const titleRange = selection.insertText(title, Word.InsertLocation.replace);
-                    titleRange.font.name = "Times New Roman";
-                    titleRange.font.size = 14;
-                    titleRange.font.bold = true;
-                    
-                    // Get the paragraph and center it
-                    const titlePara = titleRange.paragraphs.getFirst();
+                    // Insert title paragraph
+                    const titlePara = selection.insertParagraph(title, Word.InsertLocation.before);
+                    titlePara.font.name = "Times New Roman";
+                    titlePara.font.size = 14;
+                    titlePara.font.bold = true;
                     titlePara.alignment = Word.Alignment.centered;
                     titlePara.spaceAfter = 12;
                     
                     await context.sync();
                     
-                    showToast(`"${title}" title inserted!`, 'success');
+                    // Determine field code based on title
+                    let fieldCode = '';
+                    let fieldType = '';
+                    
+                    if (title === 'Table of Contents') {
+                        // TOC field: outline levels 1-3 with hyperlinks
+                        fieldCode = ' TOC \\\\o "1-3" \\\\h \\\\z \\\\u ';
+                        fieldType = 'TOC';
+                    } else if (title === 'List of Tables') {
+                        // Table of Figures field for Tables
+                        fieldCode = ' TOC \\\\h \\\\z \\\\c "Table" ';
+                        fieldType = 'LOT';
+                    } else if (title === 'List of Figures') {
+                        // Table of Figures field for Figures
+                        fieldCode = ' TOC \\\\h \\\\z \\\\c "Figure" ';
+                        fieldType = 'LOF';
+                    }
+                    
+                    // Create OOXML for the field
+                    const fieldOoxml = `
+                        <pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                            <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                                <pkg:xmlData>
+                                    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                        <w:body>
+                                            <w:p>
+                                                <w:r>
+                                                    <w:fldChar w:fldCharType="begin"/>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:instrText xml:space="preserve">${fieldCode}</w:instrText>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:fldChar w:fldCharType="separate"/>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:rPr>
+                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                                        <w:sz w:val="24"/>
+                                                    </w:rPr>
+                                                    <w:t>Right-click and select "Update Field" or press F9</w:t>
+                                                </w:r>
+                                                <w:r>
+                                                    <w:fldChar w:fldCharType="end"/>
+                                                </w:r>
+                                            </w:p>
+                                        </w:body>
+                                    </w:document>
+                                </pkg:xmlData>
+                            </pkg:part>
+                        </pkg:package>`;
+                    
+                    // Insert field after title
+                    const afterTitle = titlePara.getRange(Word.RangeLocation.after);
+                    afterTitle.insertOoxml(fieldOoxml, Word.InsertLocation.after);
+                    
+                    await context.sync();
+                    showToast(`${fieldType} inserted! Press F9 to update.`, 'success');
                 });
             } catch (error) {
-                console.error("Insert Title Error:", error);
-                showToast('Error: ' + error.message, 'error');
+                console.error("Insert TOC/LOT/LOF Error:", error);
+                // Fallback: just insert title if OOXML fails
+                try {
+                    await Word.run(async (context) => {
+                        const selection = context.document.getSelection();
+                        const titlePara = selection.insertParagraph(title, Word.InsertLocation.before);
+                        titlePara.font.name = "Times New Roman";
+                        titlePara.font.size = 14;
+                        titlePara.font.bold = true;
+                        titlePara.alignment = Word.Alignment.centered;
+                        titlePara.spaceAfter = 12;
+                        await context.sync();
+                        showToast(`"${title}" title inserted. Use References tab to insert the actual list.`, 'success');
+                    });
+                } catch (e2) {
+                    showToast('Error: ' + error.message, 'error');
+                }
             }
         }
 
