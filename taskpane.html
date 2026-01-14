@@ -857,7 +857,7 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-dot"></div>
-        <span>Ready • v1.5.0 • Build #10</span>
+        <span>Ready • v1.5.0 • Build #13</span>
     </div>
 
     <!-- Heading Options Modal -->
@@ -1439,7 +1439,8 @@
         // ============================================
         // FORMAT CAPTION HANDLERS
         // Finds ALL captions in document and formats them
-        // IMPORTANT: Preserves SEQ field, only formats text after tab
+        // Converts any separator (colon, space, none) to tab
+        // Format: Table #[tab]Caption Text in Title Case
         // ============================================
         async function handleTableCaption() {
             await formatAllCaptions('Table');
@@ -1452,64 +1453,64 @@
         async function formatAllCaptions(captionType) {
             try {
                 await Word.run(async (context) => {
-                    // Search for captions using search
-                    const searchResults = context.document.body.search(`${captionType} *`, {
-                        matchWildcards: true
-                    });
-                    searchResults.load("items");
+                    const body = context.document.body;
+                    const paragraphs = body.paragraphs;
+                    paragraphs.load("items");
                     await context.sync();
 
-                    if (searchResults.items.length === 0) {
-                        showToast(`No ${captionType.toLowerCase()} captions found`, 'error');
-                        return;
+                    // Load all paragraph text
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        paragraphs.items[i].load("text");
                     }
+                    await context.sync();
 
                     let formattedCount = 0;
+                    // Match "Table" or "Figure" followed by space(s) and number(s)
+                    const captionRegex = new RegExp(`^(${captionType}\\s*\\d+)(.*)`, 'i');
 
-                    // Process each found caption
-                    for (let i = 0; i < searchResults.items.length; i++) {
-                        const range = searchResults.items[i];
-                        
-                        // Get the paragraph containing this caption
-                        const para = range.paragraphs.getFirst();
-                        para.load("text");
-                        await context.sync();
-
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        const para = paragraphs.items[i];
                         let text = para.text;
+                        
+                        // Remove trailing paragraph mark
                         if (text.endsWith('\r')) {
                             text = text.slice(0, -1);
                         }
 
-                        // Check if this looks like a caption
-                        const captionRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
-                        if (!captionRegex.test(text.trim())) {
+                        // Check if this is a caption
+                        const match = text.match(captionRegex);
+                        if (!match) {
                             continue;
                         }
 
-                        // Find the tab position
-                        let tabPos = text.indexOf('\t');
+                        const prefix = match[1]; // "Table 4" or "Table4"
+                        let afterPrefix = match[2]; // everything after
                         
-                        if (tabPos > 0) {
-                            // Get caption text after tab
-                            let captionText = text.substring(tabPos + 1).trim();
+                        // Remove any leading separator (tab, colon, space, or nothing)
+                        let captionText = afterPrefix.replace(/^[\t:\s]*/, '').trim();
+                        
+                        if (captionText) {
+                            // Convert to Title Case
+                            const convertedCaption = convertToTitleCase(captionText);
                             
-                            if (captionText) {
-                                // Convert to Title Case
-                                const convertedCaption = convertToTitleCase(captionText);
-                                
-                                // Search for the caption text part and replace only that
-                                const captionTextRange = para.search(captionText, { matchCase: false });
-                                captionTextRange.load("items");
+                            // Find and replace everything after the prefix
+                            if (afterPrefix) {
+                                // Search for the exact text after prefix
+                                const searchRange = para.search(afterPrefix, { matchCase: false });
+                                searchRange.load("items");
                                 await context.sync();
                                 
-                                if (captionTextRange.items.length > 0) {
-                                    // Replace only the caption text (preserves SEQ field)
-                                    captionTextRange.items[0].insertText(convertedCaption, Word.InsertLocation.replace);
+                                if (searchRange.items.length > 0) {
+                                    // Replace with tab + converted caption
+                                    searchRange.items[0].insertText('\t' + convertedCaption, Word.InsertLocation.replace);
                                 }
                             }
+                        } else if (afterPrefix === '') {
+                            // No caption text at all, just "Table 4" - skip
+                            continue;
                         }
 
-                        // Apply formatting to entire paragraph (doesn't destroy SEQ field)
+                        // Apply formatting to entire paragraph
                         para.font.name = "Times New Roman";
                         para.font.size = 12;
                         para.font.bold = true;
