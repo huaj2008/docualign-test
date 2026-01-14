@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>DocuAlign</title>
+    <title>FormatCure WL</title>
     
     <!-- Office.js -->
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
@@ -73,120 +73,55 @@
         }
 
         /* ============================================
-           HEADER
+           MINI HEADER
            ============================================ */
-        .header {
-            background: linear-gradient(135deg, var(--primary) 0%, #3730a3 100%);
-            color: white;
-            padding: 20px 16px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .header-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo {
+        .mini-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(255,255,255,0.2);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .logo-text {
-            font-size: 20px;
+        .app-name {
+            font-size: 14px;
             font-weight: 700;
-            letter-spacing: -0.5px;
+            color: var(--primary);
         }
 
-        .header-subtitle {
-            font-size: 12px;
-            opacity: 0.85;
-            font-weight: 400;
+        .build-num {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
         }
 
         /* ============================================
            MAIN CONTENT
            ============================================ */
         .main-content {
-            padding: 16px;
+            padding: 12px;
+            padding-bottom: 40px;
         }
 
         /* ============================================
-           SECTION STYLES
-           ============================================ */
-        .section {
-            margin-bottom: 20px;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .section-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-
-        .section-icon.text { background: var(--primary-light); color: var(--primary); }
-        .section-icon.table { background: var(--secondary-light); color: var(--secondary); }
-        .section-icon.refs { background: var(--accent-light); color: var(--accent); }
-        .section-icon.tools { background: var(--warning-light); color: var(--warning); }
-
-        .section-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* ============================================
-           BUTTON GRID
+           BUTTON GRID - Flat layout
            ============================================ */
         .button-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .button-grid.single-col {
-            grid-template-columns: 1fr;
+        .tooltip-container.full-width {
+            grid-column: span 2;
+        }
+
+        .btn.full-btn {
+            flex-direction: row;
+            justify-content: center;
+            gap: 10px;
+            min-height: 50px;
         }
 
         /* ============================================
@@ -612,252 +547,183 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">📄</div>
-                <span class="logo-text">DocuAlign</span>
-            </div>
-            <div class="header-subtitle">Professional Document Formatting</div>
-        </div>
+    <!-- Minimal Header - just name and build -->
+    <div class="mini-header">
+        <span class="app-name">FormatCure WL</span>
+        <span class="build-num">Build #14</span>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content - Flat button grid -->
     <div class="main-content">
-        
-        <!-- Text Formatting Section -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon text">Aa</div>
-                <span class="section-title">Text Formatting</span>
-            </div>
-            <div class="button-grid">
-                <!-- Title Case -->
-                <div class="tooltip-container">
-                    <button class="btn primary" id="btnTitleCase">
-                        <div class="btn-icon">Tt</div>
-                        <span class="btn-label">Title Case</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Title Case</div>
-                        <div class="tooltip-desc">Capitalizes first letter of each word. Preserves pharma acronyms (FDA, IND, NDA). Works on selection or entire paragraph.</div>
-                    </div>
-                </div>
-                
-                <!-- Sentence Case -->
-                <div class="tooltip-container">
-                    <button class="btn primary" id="btnSentenceCase">
-                        <div class="btn-icon">Ss</div>
-                        <span class="btn-label">Sentence Case</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Sentence Case</div>
-                        <div class="tooltip-desc">Capitalizes first word of each sentence only. Preserves pharma acronyms. Works on selection or entire paragraph.</div>
-                    </div>
-                </div>
-
-                <!-- Title Case All Headings -->
-                <div class="tooltip-container">
-                    <button class="btn secondary" id="btnTitleAllHeadings">
-                        <div class="btn-icon">Ht</div>
-                        <span class="btn-label">All Headings</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Title Case All Headings</div>
-                        <div class="tooltip-desc">Apply Title Case to all headings (H1-H6) in the document at once. Preserves pharma acronyms.</div>
-                    </div>
-                </div>
-
-                <!-- Heading Case Dialog -->
-                <div class="tooltip-container">
-                    <button class="btn secondary" id="btnHeadingDialog">
-                        <div class="btn-icon">H⚙</div>
-                        <span class="btn-label">Heading Options</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Heading Case Dialog</div>
-                        <div class="tooltip-desc">Choose Title Case or Sentence Case for each heading level (1-6) individually.</div>
-                    </div>
-                </div>
-
-                <!-- Heading Format (H1=Title, others=Sentence) -->
-                <div class="tooltip-container">
-                    <button class="btn secondary" id="btnHeadingFormat">
-                        <div class="btn-icon">Hs</div>
-                        <span class="btn-label">Heading Format</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Heading Format</div>
-                        <div class="tooltip-desc">Quick format: H1 = Title Case, H2-H6 = Sentence Case. Applies to all headings in document.</div>
-                    </div>
+        <div class="button-grid">
+            <!-- Title Case -->
+            <div class="tooltip-container">
+                <button class="btn primary" id="btnTitleCase">
+                    <div class="btn-icon">Tt</div>
+                    <span class="btn-label">Title Case</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Title Case</div>
+                    <div class="tooltip-desc">Capitalizes first letter of each word. Preserves pharma acronyms.</div>
                 </div>
             </div>
-        </div>
-
-        <!-- Body Formatting Section -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon table">¶</div>
-                <span class="section-title">Body & Tables</span>
-            </div>
-            <div class="button-grid">
-                <!-- Body Text Format -->
-                <div class="tooltip-container">
-                    <button class="btn accent" id="btnBodyFormat">
-                        <div class="btn-icon">¶</div>
-                        <span class="btn-label">Body Format</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Format Body Text</div>
-                        <div class="tooltip-desc">Apply Sentence Case + body style: Times New Roman 12pt, 1.15 line spacing, 6pt spacing before/after.</div>
-                    </div>
-                </div>
-
-                <!-- Table Format -->
-                <div class="tooltip-container">
-                    <button class="btn accent" id="btnTableFormat">
-                        <div class="btn-icon">▦</div>
-                        <span class="btn-label">Table Format</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Format Table</div>
-                        <div class="tooltip-desc">Apply consistent table styling: TNR 10pt, centered headers (bold), left-aligned body. Click inside a table first.</div>
-                    </div>
+            
+            <!-- Sentence Case -->
+            <div class="tooltip-container">
+                <button class="btn primary" id="btnSentenceCase">
+                    <div class="btn-icon">Ss</div>
+                    <span class="btn-label">Sentence Case</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Sentence Case</div>
+                    <div class="tooltip-desc">Capitalizes first word of each sentence. Preserves pharma acronyms.</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Captions & References Section -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon refs">⚓</div>
-                <span class="section-title">Captions & References</span>
-            </div>
-            <div class="button-grid">
-                <!-- Table Caption Format -->
-                <div class="tooltip-container">
-                    <button class="btn warning" id="btnTableCaption">
-                        <div class="btn-icon">T#</div>
-                        <span class="btn-label">Format Table Cap</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Format All Table Captions</div>
-                        <div class="tooltip-desc">Find all "Table X..." in document. Apply: Title Case, Tab separator, TNR 12pt Bold, Left-aligned.</div>
-                    </div>
-                </div>
-
-                <!-- Figure Caption Format -->
-                <div class="tooltip-container">
-                    <button class="btn warning" id="btnFigureCaption">
-                        <div class="btn-icon">F#</div>
-                        <span class="btn-label">Format Figure Cap</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Format All Figure Captions</div>
-                        <div class="tooltip-desc">Find all "Figure X..." in document. Apply: Title Case, Tab separator, TNR 12pt Bold, Left-aligned.</div>
-                    </div>
-                </div>
-
-                <!-- Cross-Reference Style -->
-                <div class="tooltip-container">
-                    <button class="btn warning" id="btnCrossRef">
-                        <div class="btn-icon">↗</div>
-                        <span class="btn-label">Cross-Ref Style</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Cross-Reference Style</div>
-                        <div class="tooltip-desc">Format selected text as cross-reference style: Blue, Bold, Underlined. TNR 12pt.</div>
-                    </div>
-                </div>
-
-                <!-- eCTD Link Style -->
-                <div class="tooltip-container">
-                    <button class="btn warning" id="btnEctdLink">
-                        <div class="btn-icon">🔗</div>
-                        <span class="btn-label">eCTD Link</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">eCTD Link Style</div>
-                        <div class="tooltip-desc">Format selected text as eCTD hyperlink: Blue, Underlined, NOT bold (per eCTD spec). TNR 12pt.</div>
-                    </div>
+            <!-- Title Case All Headings -->
+            <div class="tooltip-container">
+                <button class="btn secondary" id="btnTitleAllHeadings">
+                    <div class="btn-icon">Ht</div>
+                    <span class="btn-label">All Headings</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Title Case All Headings</div>
+                    <div class="tooltip-desc">Apply Title Case to all headings (H1-H6) in document.</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tools Section -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon tools">🔧</div>
-                <span class="section-title">Document Tools</span>
+            <!-- Heading Case Dialog -->
+            <div class="tooltip-container">
+                <button class="btn secondary" id="btnHeadingDialog">
+                    <div class="btn-icon">H⚙</div>
+                    <span class="btn-label">Heading Options</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Heading Case Dialog</div>
+                    <div class="tooltip-desc">Choose Title/Sentence Case for each heading level (1-6).</div>
+                </div>
             </div>
-            <div class="button-grid">
-                <!-- Special Characters -->
-                <div class="tooltip-container">
-                    <button class="btn success" id="btnSpecialChars">
-                        <div class="btn-icon">×℃</div>
-                        <span class="btn-label">Special Chars</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Special Characters</div>
-                        <div class="tooltip-desc">Insert common scientific characters: × (multiply), ℃ (degree C), ∞ (infinity), and more.</div>
-                    </div>
-                </div>
 
-                <!-- Latin Terms -->
-                <div class="tooltip-container">
-                    <button class="btn success" id="btnLatinTerms">
-                        <div class="btn-icon">𝑖𝑡</div>
-                        <span class="btn-label">Latin Terms</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Italicize Latin Terms</div>
-                        <div class="tooltip-desc">Auto-italicize common Latin terms: in vivo, in vitro, in situ, ex vivo, in utero throughout document.</div>
-                    </div>
+            <!-- Heading Format -->
+            <div class="tooltip-container">
+                <button class="btn secondary" id="btnHeadingFormat">
+                    <div class="btn-icon">Hs</div>
+                    <span class="btn-label">Heading Format</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Heading Format</div>
+                    <div class="tooltip-desc">H1 = Title Case, H2-H6 = Sentence Case.</div>
                 </div>
+            </div>
 
-                <!-- Style Scanner (Coming Soon) -->
-                <div class="tooltip-container">
-                    <button class="btn success" id="btnStyleScanner" disabled>
-                        <span class="coming-soon">Soon</span>
-                        <div class="btn-icon">🔍</div>
-                        <span class="btn-label">Style Scanner</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Style Scanner</div>
-                        <div class="tooltip-desc">Analyze document and report all styles used with counts. Helps identify formatting inconsistencies.</div>
-                    </div>
+            <!-- Body Format -->
+            <div class="tooltip-container">
+                <button class="btn accent" id="btnBodyFormat">
+                    <div class="btn-icon">¶</div>
+                    <span class="btn-label">Body Format</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Format Body Text</div>
+                    <div class="tooltip-desc">Sentence Case + TNR 12pt, 1.15 spacing, 6pt before/after.</div>
+                </div>
+            </div>
+
+            <!-- Table Format -->
+            <div class="tooltip-container">
+                <button class="btn accent" id="btnTableFormat">
+                    <div class="btn-icon">▦</div>
+                    <span class="btn-label">Table Format</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Format Table</div>
+                    <div class="tooltip-desc">TNR 10pt, header bold/centered, body left-aligned.</div>
+                </div>
+            </div>
+
+            <!-- Format Table Caption -->
+            <div class="tooltip-container">
+                <button class="btn warning" id="btnTableCaption">
+                    <div class="btn-icon">T#</div>
+                    <span class="btn-label">Table Caption</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Format All Table Captions</div>
+                    <div class="tooltip-desc">Title Case, Tab separator, TNR 12pt Bold.</div>
+                </div>
+            </div>
+
+            <!-- Format Figure Caption -->
+            <div class="tooltip-container">
+                <button class="btn warning" id="btnFigureCaption">
+                    <div class="btn-icon">F#</div>
+                    <span class="btn-label">Figure Caption</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Format All Figure Captions</div>
+                    <div class="tooltip-desc">Title Case, Tab separator, TNR 12pt Bold.</div>
+                </div>
+            </div>
+
+            <!-- Cross-Reference Style -->
+            <div class="tooltip-container">
+                <button class="btn warning" id="btnCrossRef">
+                    <div class="btn-icon">↗</div>
+                    <span class="btn-label">Cross-Ref Style</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Cross-Reference Style</div>
+                    <div class="tooltip-desc">Blue, Bold, Underlined, TNR 12pt.</div>
+                </div>
+            </div>
+
+            <!-- eCTD Link Style -->
+            <div class="tooltip-container">
+                <button class="btn warning" id="btnEctdLink">
+                    <div class="btn-icon">🔗</div>
+                    <span class="btn-label">eCTD Link</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">eCTD Link Style</div>
+                    <div class="tooltip-desc">Blue, Underlined, NOT bold, TNR 12pt.</div>
+                </div>
+            </div>
+
+            <!-- Special Characters -->
+            <div class="tooltip-container">
+                <button class="btn success" id="btnSpecialChars">
+                    <div class="btn-icon">×℃</div>
+                    <span class="btn-label">Special Chars</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Special Characters</div>
+                    <div class="tooltip-desc">Insert × ℃ ° ∞ ± ≤ ≥ μ α β and more.</div>
+                </div>
+            </div>
+
+            <!-- Latin Terms -->
+            <div class="tooltip-container">
+                <button class="btn success" id="btnLatinTerms">
+                    <div class="btn-icon">𝑖𝑡</div>
+                    <span class="btn-label">Latin Terms</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Italicize Latin Terms</div>
+                    <div class="tooltip-desc">in vivo, in vitro, in situ, ex vivo, in utero.</div>
+                </div>
+            </div>
+
+            <!-- Update TOC/LOT/LOF Format -->
+            <div class="tooltip-container full-width">
+                <button class="btn accent full-btn" id="btnUpdateAll">
+                    <div class="btn-icon">🔄</div>
+                    <span class="btn-label">Update TOC/LOT/LOF Format</span>
+                </button>
+                <div class="tooltip">
+                    <div class="tooltip-title">Update & Format TOC/LOT/LOF</div>
+                    <div class="tooltip-desc">Update fields, format entries, auto-add missing titles.</div>
                 </div>
             </div>
         </div>
-
-        <!-- Update All Section -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon text">📑</div>
-                <span class="section-title">Document Updates</span>
-            </div>
-            <div class="button-grid">
-                <!-- Update All -->
-                <div class="tooltip-container">
-                    <button class="btn accent" id="btnUpdateAll">
-                        <div class="btn-icon">🔄</div>
-                        <span class="btn-label">Update All</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Update & Format All</div>
-                        <div class="tooltip-desc">Update fields, format TOC/LOT/LOF entries, and auto-add missing "List of Tables" / "List of Figures" titles.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Status Bar -->
-    <div class="status-bar">
-        <div class="status-dot"></div>
-        <span>Ready • v1.5.0 • Build #13</span>
     </div>
 
     <!-- Heading Options Modal -->
@@ -1726,42 +1592,48 @@
         }
 
         // ============================================
-        // UPDATE ALL FIELDS + FORMAT + AUTO-ADD TITLES
+        // UPDATE TOC/LOT/LOF FORMAT (Optimized)
         // ============================================
         async function handleUpdateAll() {
             try {
+                showToast('Updating...', 'success');
+                
                 await Word.run(async (context) => {
                     const body = context.document.body;
                     
-                    // 1. Update all fields first
+                    // 1. Load fields and paragraphs in ONE sync
                     const fields = body.fields;
-                    fields.load("items");
-                    await context.sync();
-                    
-                    let fieldCount = fields.items.length;
-                    for (let i = 0; i < fields.items.length; i++) {
-                        fields.items[i].updateResult();
-                    }
-                    
-                    await context.sync();
-                    
-                    // 2. Load all paragraphs
                     const paragraphs = body.paragraphs;
+                    fields.load("items");
                     paragraphs.load("items");
                     await context.sync();
                     
-                    for (let i = 0; i < paragraphs.items.length; i++) {
+                    // 2. Update all fields (batch - no sync needed between)
+                    let fieldCount = fields.items.length;
+                    for (let i = 0; i < fieldCount; i++) {
+                        fields.items[i].updateResult();
+                    }
+                    
+                    // 3. Load all paragraph properties in ONE sync
+                    const paraCount = paragraphs.items.length;
+                    for (let i = 0; i < paraCount; i++) {
                         paragraphs.items[i].load("style, text");
                     }
                     await context.sync();
                     
-                    // 3. Check for existing titles and LOT/LOF entries
+                    // 4. Analyze paragraphs (no sync needed - just reading)
                     let hasLOTTitle = false;
                     let hasLOFTitle = false;
                     let firstLOTEntryIndex = -1;
                     let firstLOFEntryIndex = -1;
+                    let formattedCount = 0;
                     
-                    for (let i = 0; i < paragraphs.items.length; i++) {
+                    // Collect paragraphs to format
+                    const tocTitles = [];
+                    const tocEntries = [];
+                    const lotLofEntries = [];
+                    
+                    for (let i = 0; i < paraCount; i++) {
                         const para = paragraphs.items[i];
                         const text = para.text.trim().toLowerCase();
                         const styleName = para.style.toLowerCase();
@@ -1769,86 +1641,15 @@
                         // Check for existing titles
                         if (text === 'list of tables' || text.startsWith('list of tables')) {
                             hasLOTTitle = true;
-                        }
-                        if (text === 'list of figures' || text.startsWith('list of figures')) {
+                            tocTitles.push(para);
+                        } else if (text === 'list of figures' || text.startsWith('list of figures')) {
                             hasLOFTitle = true;
+                            tocTitles.push(para);
+                        } else if (text === 'table of contents' || text.startsWith('table of contents')) {
+                            tocTitles.push(para);
                         }
                         
-                        // Check for LOT/LOF entries (Table of Figures style with Table/Figure caption)
-                        if (styleName.includes('table of figures')) {
-                            const entryText = para.text.trim();
-                            if (entryText.toLowerCase().startsWith('table') && firstLOTEntryIndex === -1) {
-                                firstLOTEntryIndex = i;
-                            }
-                            if (entryText.toLowerCase().startsWith('figure') && firstLOFEntryIndex === -1) {
-                                firstLOFEntryIndex = i;
-                            }
-                        }
-                    }
-                    
-                    // 4. Insert missing titles
-                    let titlesAdded = 0;
-                    
-                    // Insert LOF title if needed (do this first since indices will shift)
-                    if (!hasLOFTitle && firstLOFEntryIndex !== -1) {
-                        const firstLOFPara = paragraphs.items[firstLOFEntryIndex];
-                        const titlePara = firstLOFPara.insertParagraph("List of Figures", Word.InsertLocation.before);
-                        titlePara.font.name = "Times New Roman";
-                        titlePara.font.size = 12;
-                        titlePara.font.bold = true;
-                        titlePara.alignment = Word.Alignment.centered;
-                        titlePara.spaceAfter = 12;
-                        titlesAdded++;
-                    }
-                    
-                    // Insert LOT title if needed
-                    if (!hasLOTTitle && firstLOTEntryIndex !== -1) {
-                        const firstLOTPara = paragraphs.items[firstLOTEntryIndex];
-                        const titlePara = firstLOTPara.insertParagraph("List of Tables", Word.InsertLocation.before);
-                        titlePara.font.name = "Times New Roman";
-                        titlePara.font.size = 12;
-                        titlePara.font.bold = true;
-                        titlePara.alignment = Word.Alignment.centered;
-                        titlePara.spaceAfter = 12;
-                        titlesAdded++;
-                    }
-                    
-                    await context.sync();
-                    
-                    // 5. Reload paragraphs and format all TOC/LOT/LOF entries
-                    const allParas = body.paragraphs;
-                    allParas.load("items");
-                    await context.sync();
-                    
-                    for (let i = 0; i < allParas.items.length; i++) {
-                        allParas.items[i].load("style, text");
-                    }
-                    await context.sync();
-                    
-                    let formattedCount = 0;
-                    
-                    for (let i = 0; i < allParas.items.length; i++) {
-                        const para = allParas.items[i];
-                        const styleName = para.style.toLowerCase();
-                        const text = para.text.trim().toLowerCase();
-                        
-                        // Format TOC/LOT/LOF titles
-                        if (text === 'table of contents' || 
-                            text === 'list of tables' || 
-                            text === 'list of figures' ||
-                            text.startsWith('table of contents') ||
-                            text.startsWith('list of tables') ||
-                            text.startsWith('list of figures')) {
-                            para.font.name = "Times New Roman";
-                            para.font.size = 12;
-                            para.font.bold = true;
-                            para.alignment = Word.Alignment.centered;
-                            para.leftIndent = 0;
-                            formattedCount++;
-                            continue;
-                        }
-                        
-                        // Format TOC entries with indentation
+                        // Check TOC entries
                         let tocLevel = 0;
                         if (styleName === 'toc 1' || styleName === 'toc1') tocLevel = 1;
                         else if (styleName === 'toc 2' || styleName === 'toc2') tocLevel = 2;
@@ -1858,25 +1659,75 @@
                         else if (styleName === 'toc 6' || styleName === 'toc6') tocLevel = 6;
                         
                         if (tocLevel > 0) {
-                            para.font.name = "Times New Roman";
-                            para.font.size = 12;
-                            para.font.bold = false;
-                            const indentPoints = (tocLevel - 1) * 18;
-                            para.leftIndent = indentPoints;
-                            formattedCount++;
-                            continue;
+                            tocEntries.push({ para, level: tocLevel });
                         }
                         
-                        // Format LOT/LOF entries (no indentation)
+                        // Check LOT/LOF entries
                         if (styleName.includes('table of figures')) {
-                            para.font.name = "Times New Roman";
-                            para.font.size = 12;
-                            para.font.bold = false;
-                            para.leftIndent = 0;
-                            formattedCount++;
+                            lotLofEntries.push(para);
+                            const entryText = para.text.trim().toLowerCase();
+                            if (entryText.startsWith('table') && firstLOTEntryIndex === -1) {
+                                firstLOTEntryIndex = i;
+                            }
+                            if (entryText.startsWith('figure') && firstLOFEntryIndex === -1) {
+                                firstLOFEntryIndex = i;
+                            }
                         }
                     }
                     
+                    // 5. Insert missing titles (batch)
+                    let titlesAdded = 0;
+                    
+                    if (!hasLOFTitle && firstLOFEntryIndex !== -1) {
+                        const titlePara = paragraphs.items[firstLOFEntryIndex].insertParagraph("List of Figures", Word.InsertLocation.before);
+                        titlePara.font.name = "Times New Roman";
+                        titlePara.font.size = 12;
+                        titlePara.font.bold = true;
+                        titlePara.alignment = Word.Alignment.centered;
+                        titlePara.spaceAfter = 12;
+                        titlesAdded++;
+                    }
+                    
+                    if (!hasLOTTitle && firstLOTEntryIndex !== -1) {
+                        const titlePara = paragraphs.items[firstLOTEntryIndex].insertParagraph("List of Tables", Word.InsertLocation.before);
+                        titlePara.font.name = "Times New Roman";
+                        titlePara.font.size = 12;
+                        titlePara.font.bold = true;
+                        titlePara.alignment = Word.Alignment.centered;
+                        titlePara.spaceAfter = 12;
+                        titlesAdded++;
+                    }
+                    
+                    // 6. Apply formatting (batch - no sync between)
+                    // Format titles
+                    for (const para of tocTitles) {
+                        para.font.name = "Times New Roman";
+                        para.font.size = 12;
+                        para.font.bold = true;
+                        para.alignment = Word.Alignment.centered;
+                        para.leftIndent = 0;
+                        formattedCount++;
+                    }
+                    
+                    // Format TOC entries with indentation
+                    for (const { para, level } of tocEntries) {
+                        para.font.name = "Times New Roman";
+                        para.font.size = 12;
+                        para.font.bold = false;
+                        para.leftIndent = (level - 1) * 18;
+                        formattedCount++;
+                    }
+                    
+                    // Format LOT/LOF entries
+                    for (const para of lotLofEntries) {
+                        para.font.name = "Times New Roman";
+                        para.font.size = 12;
+                        para.font.bold = false;
+                        para.leftIndent = 0;
+                        formattedCount++;
+                    }
+                    
+                    // 7. Single final sync
                     await context.sync();
                     
                     let message = `Updated ${fieldCount} field(s), formatted ${formattedCount} entries`;
@@ -1886,7 +1737,7 @@
                     showToast(message + '!', 'success');
                 });
             } catch (error) {
-                console.error("Update All Error:", error);
+                console.error("Update TOC/LOT/LOF Error:", error);
                 showToast('Error: ' + error.message, 'error');
             }
         }
