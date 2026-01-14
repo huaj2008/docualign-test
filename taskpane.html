@@ -846,7 +846,7 @@
                     </button>
                     <div class="tooltip">
                         <div class="tooltip-title">Update & Format All</div>
-                        <div class="tooltip-desc">Update all fields (TOC, LOT, LOF, cross-refs, page numbers) AND format entries as TNR 12pt.</div>
+                        <div class="tooltip-desc">Update fields, format TOC/LOT/LOF entries, and auto-add missing "List of Tables" / "List of Figures" titles.</div>
                     </div>
                 </div>
             </div>
@@ -1881,14 +1881,14 @@
         }
 
         // ============================================
-        // UPDATE ALL FIELDS + FORMAT TOC/LOT/LOF
+        // UPDATE ALL FIELDS + FORMAT + AUTO-ADD TITLES
         // ============================================
         async function handleUpdateAll() {
             try {
                 await Word.run(async (context) => {
                     const body = context.document.body;
                     
-                    // 1. Update all fields
+                    // 1. Update all fields first
                     const fields = body.fields;
                     fields.load("items");
                     await context.sync();
@@ -1900,23 +1900,110 @@
                     
                     await context.sync();
                     
-                    // 2. Format TOC/LOT/LOF entries
+                    // 2. Load all paragraphs
                     const paragraphs = body.paragraphs;
                     paragraphs.load("items");
                     await context.sync();
                     
-                    let formattedCount = 0;
-                    
                     for (let i = 0; i < paragraphs.items.length; i++) {
-                        paragraphs.items[i].load("style");
+                        paragraphs.items[i].load("style, text");
                     }
                     await context.sync();
                     
+                    // 3. Check for existing titles and LOT/LOF entries
+                    let hasLOTTitle = false;
+                    let hasLOFTitle = false;
+                    let firstLOTEntryIndex = -1;
+                    let firstLOFEntryIndex = -1;
+                    
                     for (let i = 0; i < paragraphs.items.length; i++) {
                         const para = paragraphs.items[i];
+                        const text = para.text.trim().toLowerCase();
                         const styleName = para.style.toLowerCase();
                         
-                        // Check if it's a TOC entry style and get level
+                        // Check for existing titles
+                        if (text === 'list of tables' || text.startsWith('list of tables')) {
+                            hasLOTTitle = true;
+                        }
+                        if (text === 'list of figures' || text.startsWith('list of figures')) {
+                            hasLOFTitle = true;
+                        }
+                        
+                        // Check for LOT/LOF entries (Table of Figures style with Table/Figure caption)
+                        if (styleName.includes('table of figures')) {
+                            const entryText = para.text.trim();
+                            if (entryText.toLowerCase().startsWith('table') && firstLOTEntryIndex === -1) {
+                                firstLOTEntryIndex = i;
+                            }
+                            if (entryText.toLowerCase().startsWith('figure') && firstLOFEntryIndex === -1) {
+                                firstLOFEntryIndex = i;
+                            }
+                        }
+                    }
+                    
+                    // 4. Insert missing titles
+                    let titlesAdded = 0;
+                    
+                    // Insert LOF title if needed (do this first since indices will shift)
+                    if (!hasLOFTitle && firstLOFEntryIndex !== -1) {
+                        const firstLOFPara = paragraphs.items[firstLOFEntryIndex];
+                        const titlePara = firstLOFPara.insertParagraph("List of Figures", Word.InsertLocation.before);
+                        titlePara.font.name = "Times New Roman";
+                        titlePara.font.size = 12;
+                        titlePara.font.bold = true;
+                        titlePara.alignment = Word.Alignment.centered;
+                        titlePara.spaceAfter = 12;
+                        titlesAdded++;
+                    }
+                    
+                    // Insert LOT title if needed
+                    if (!hasLOTTitle && firstLOTEntryIndex !== -1) {
+                        const firstLOTPara = paragraphs.items[firstLOTEntryIndex];
+                        const titlePara = firstLOTPara.insertParagraph("List of Tables", Word.InsertLocation.before);
+                        titlePara.font.name = "Times New Roman";
+                        titlePara.font.size = 12;
+                        titlePara.font.bold = true;
+                        titlePara.alignment = Word.Alignment.centered;
+                        titlePara.spaceAfter = 12;
+                        titlesAdded++;
+                    }
+                    
+                    await context.sync();
+                    
+                    // 5. Reload paragraphs and format all TOC/LOT/LOF entries
+                    const allParas = body.paragraphs;
+                    allParas.load("items");
+                    await context.sync();
+                    
+                    for (let i = 0; i < allParas.items.length; i++) {
+                        allParas.items[i].load("style, text");
+                    }
+                    await context.sync();
+                    
+                    let formattedCount = 0;
+                    
+                    for (let i = 0; i < allParas.items.length; i++) {
+                        const para = allParas.items[i];
+                        const styleName = para.style.toLowerCase();
+                        const text = para.text.trim().toLowerCase();
+                        
+                        // Format TOC/LOT/LOF titles
+                        if (text === 'table of contents' || 
+                            text === 'list of tables' || 
+                            text === 'list of figures' ||
+                            text.startsWith('table of contents') ||
+                            text.startsWith('list of tables') ||
+                            text.startsWith('list of figures')) {
+                            para.font.name = "Times New Roman";
+                            para.font.size = 12;
+                            para.font.bold = true;
+                            para.alignment = Word.Alignment.centered;
+                            para.leftIndent = 0;
+                            formattedCount++;
+                            continue;
+                        }
+                        
+                        // Format TOC entries with indentation
                         let tocLevel = 0;
                         if (styleName === 'toc 1' || styleName === 'toc1') tocLevel = 1;
                         else if (styleName === 'toc 2' || styleName === 'toc2') tocLevel = 2;
@@ -1924,30 +2011,34 @@
                         else if (styleName === 'toc 4' || styleName === 'toc4') tocLevel = 4;
                         else if (styleName === 'toc 5' || styleName === 'toc5') tocLevel = 5;
                         else if (styleName === 'toc 6' || styleName === 'toc6') tocLevel = 6;
-                        else if (styleName.includes('table of figures') || 
-                                 styleName.includes('table of tables')) tocLevel = 1;
                         
                         if (tocLevel > 0) {
-                            // Format as TNR 12pt
                             para.font.name = "Times New Roman";
                             para.font.size = 12;
-                            
-                            // Set indentation based on level (0.25 inch per level)
-                            // Level 1 = 0, Level 2 = 0.25", Level 3 = 0.5", etc.
-                            const indentPoints = (tocLevel - 1) * 18; // 18 points = 0.25 inch
+                            para.font.bold = false;
+                            const indentPoints = (tocLevel - 1) * 18;
                             para.leftIndent = indentPoints;
-                            
+                            formattedCount++;
+                            continue;
+                        }
+                        
+                        // Format LOT/LOF entries (no indentation)
+                        if (styleName.includes('table of figures')) {
+                            para.font.name = "Times New Roman";
+                            para.font.size = 12;
+                            para.font.bold = false;
+                            para.leftIndent = 0;
                             formattedCount++;
                         }
                     }
                     
                     await context.sync();
                     
-                    if (fieldCount > 0 || formattedCount > 0) {
-                        showToast(`Updated ${fieldCount} field(s), formatted ${formattedCount} TOC/LOT/LOF entries!`, 'success');
-                    } else {
-                        showToast('No fields or TOC entries found', 'error');
+                    let message = `Updated ${fieldCount} field(s), formatted ${formattedCount} entries`;
+                    if (titlesAdded > 0) {
+                        message += `, added ${titlesAdded} title(s)`;
                     }
+                    showToast(message + '!', 'success');
                 });
             } catch (error) {
                 console.error("Update All Error:", error);
