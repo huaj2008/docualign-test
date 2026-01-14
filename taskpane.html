@@ -857,7 +857,7 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-dot"></div>
-        <span>Ready • v1.5.0 • Build #9</span>
+        <span>Ready • v1.5.0 • Build #10</span>
     </div>
 
     <!-- Heading Options Modal -->
@@ -1439,6 +1439,7 @@
         // ============================================
         // FORMAT CAPTION HANDLERS
         // Finds ALL captions in document and formats them
+        // IMPORTANT: Preserves SEQ field, only formats text after tab
         // ============================================
         async function handleTableCaption() {
             await formatAllCaptions('Table');
@@ -1451,76 +1452,70 @@
         async function formatAllCaptions(captionType) {
             try {
                 await Word.run(async (context) => {
-                    const body = context.document.body;
-                    const paragraphs = body.paragraphs;
-                    paragraphs.load("items");
+                    // Search for captions using search
+                    const searchResults = context.document.body.search(`${captionType} *`, {
+                        matchWildcards: true
+                    });
+                    searchResults.load("items");
                     await context.sync();
 
-                    // Load all paragraph text
-                    for (let i = 0; i < paragraphs.items.length; i++) {
-                        paragraphs.items[i].load("text");
+                    if (searchResults.items.length === 0) {
+                        showToast(`No ${captionType.toLowerCase()} captions found`, 'error');
+                        return;
                     }
-                    await context.sync();
 
                     let formattedCount = 0;
-                    const captionRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
 
-                    for (let i = 0; i < paragraphs.items.length; i++) {
-                        const para = paragraphs.items[i];
-                        let text = para.text;
+                    // Process each found caption
+                    for (let i = 0; i < searchResults.items.length; i++) {
+                        const range = searchResults.items[i];
                         
-                        // Remove trailing paragraph mark
+                        // Get the paragraph containing this caption
+                        const para = range.paragraphs.getFirst();
+                        para.load("text");
+                        await context.sync();
+
+                        let text = para.text;
                         if (text.endsWith('\r')) {
                             text = text.slice(0, -1);
                         }
 
-                        // Check if this is a caption (starts with "Table X" or "Figure X")
-                        if (captionRegex.test(text.trim())) {
-                            // Extract the caption text part (after Table X or Figure X)
-                            let captionText = '';
-                            let prefix = '';
-                            
-                            // Find the prefix (Table 1, Figure 2, etc.)
-                            const prefixMatch = text.match(new RegExp(`^(${captionType}\\s+\\d+)`, 'i'));
-                            if (prefixMatch) {
-                                prefix = prefixMatch[1];
-                            }
-                            
-                            // Find separator and extract caption text
-                            let tabPos = text.indexOf('\t');
-                            let colonPos = text.indexOf(':');
-                            
-                            if (tabPos > 0) {
-                                captionText = text.substring(tabPos + 1).trim();
-                            } else if (colonPos > 0) {
-                                captionText = text.substring(colonPos + 1).trim();
-                            } else {
-                                // Try to find text after "Table X " or "Figure X "
-                                const match = text.match(new RegExp(`^${captionType}\\s+\\d+\\s+(.*)`, 'i'));
-                                if (match) {
-                                    captionText = match[1].trim();
-                                }
-                            }
+                        // Check if this looks like a caption
+                        const captionRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
+                        if (!captionRegex.test(text.trim())) {
+                            continue;
+                        }
 
-                            // Convert caption text to Title Case
+                        // Find the tab position
+                        let tabPos = text.indexOf('\t');
+                        
+                        if (tabPos > 0) {
+                            // Get caption text after tab
+                            let captionText = text.substring(tabPos + 1).trim();
+                            
                             if (captionText) {
+                                // Convert to Title Case
                                 const convertedCaption = convertToTitleCase(captionText);
                                 
-                                // Rebuild the caption with tab separator
-                                const newText = `${prefix}\t${convertedCaption}`;
+                                // Search for the caption text part and replace only that
+                                const captionTextRange = para.search(captionText, { matchCase: false });
+                                captionTextRange.load("items");
+                                await context.sync();
                                 
-                                // Replace paragraph text
-                                para.insertText(newText, Word.InsertLocation.replace);
+                                if (captionTextRange.items.length > 0) {
+                                    // Replace only the caption text (preserves SEQ field)
+                                    captionTextRange.items[0].insertText(convertedCaption, Word.InsertLocation.replace);
+                                }
                             }
-
-                            // Apply formatting
-                            para.font.name = "Times New Roman";
-                            para.font.size = 12;
-                            para.font.bold = true;
-                            para.alignment = Word.Alignment.left;
-                            
-                            formattedCount++;
                         }
+
+                        // Apply formatting to entire paragraph (doesn't destroy SEQ field)
+                        para.font.name = "Times New Roman";
+                        para.font.size = 12;
+                        para.font.bold = true;
+                        para.alignment = Word.Alignment.left;
+                        
+                        formattedCount++;
                     }
 
                     await context.sync();
