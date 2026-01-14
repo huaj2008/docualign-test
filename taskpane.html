@@ -735,27 +735,27 @@
                 <span class="section-title">Captions & References</span>
             </div>
             <div class="button-grid">
-                <!-- Table Caption -->
+                <!-- Table Caption Format -->
                 <div class="tooltip-container">
                     <button class="btn warning" id="btnTableCaption">
                         <div class="btn-icon">T#</div>
-                        <span class="btn-label">Table Caption</span>
+                        <span class="btn-label">Format Table Cap</span>
                     </button>
                     <div class="tooltip">
-                        <div class="tooltip-title">Insert Table Caption</div>
-                        <div class="tooltip-desc">Prompts for caption text, inserts "Table X[tab]Caption" at cursor. Title Case, TNR 12pt Bold, Left-aligned.</div>
+                        <div class="tooltip-title">Format Table Caption</div>
+                        <div class="tooltip-desc">Format existing table caption: Title Case, TNR 12pt Bold, Left-aligned. Click on caption first.</div>
                     </div>
                 </div>
 
-                <!-- Figure Caption -->
+                <!-- Figure Caption Format -->
                 <div class="tooltip-container">
                     <button class="btn warning" id="btnFigureCaption">
                         <div class="btn-icon">F#</div>
-                        <span class="btn-label">Figure Caption</span>
+                        <span class="btn-label">Format Figure Cap</span>
                     </button>
                     <div class="tooltip">
-                        <div class="tooltip-title">Insert Figure Caption</div>
-                        <div class="tooltip-desc">Prompts for caption text, inserts "Figure X[tab]Caption" at cursor. Title Case, TNR 12pt Bold, Left-aligned.</div>
+                        <div class="tooltip-title">Format Figure Caption</div>
+                        <div class="tooltip-desc">Format existing figure caption: Title Case, TNR 12pt Bold, Left-aligned. Click on caption first.</div>
                     </div>
                 </div>
 
@@ -927,25 +927,6 @@
         </div>
     </div>
 
-    <!-- Caption Input Modal -->
-    <div class="modal-overlay" id="captionModal">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title" id="captionModalTitle">Insert Caption</span>
-                <button class="modal-close" id="captionModalClose">×</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">Enter caption text (will be converted to Title Case):</p>
-                <input type="text" id="captionInput" class="caption-input" placeholder="e.g., Summary of Clinical Trial Results">
-                <p class="modal-hint" id="captionPreview"></p>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" id="captionModalCancel">Cancel</button>
-                <button class="modal-btn apply" id="captionModalApply">Insert Caption</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Special Characters Modal -->
     <div class="modal-overlay" id="specialCharsModal">
         <div class="modal">
@@ -1044,15 +1025,6 @@
                 document.getElementById('headingModal').addEventListener('click', function(e) {
                     if (e.target === this) hideHeadingModal();
                 });
-                
-                // Caption Modal events
-                document.getElementById('captionModalClose').addEventListener('click', hideCaptionModal);
-                document.getElementById('captionModalCancel').addEventListener('click', hideCaptionModal);
-                document.getElementById('captionModalApply').addEventListener('click', insertCaption);
-                document.getElementById('captionModal').addEventListener('click', function(e) {
-                    if (e.target === this) hideCaptionModal();
-                });
-                document.getElementById('captionInput').addEventListener('input', updateCaptionPreview);
                 
                 // Special Characters Modal events
                 document.getElementById('specialCharsClose').addEventListener('click', hideSpecialCharsModal);
@@ -1465,45 +1437,18 @@
         }
 
         // ============================================
-        // CAPTION MODAL FUNCTIONS
-        // ============================================
-        let currentCaptionType = 'Table';
-
-        function showCaptionModal(type) {
-            currentCaptionType = type;
-            document.getElementById('captionModalTitle').textContent = `Insert ${type} Caption`;
-            document.getElementById('captionInput').value = '';
-            document.getElementById('captionPreview').textContent = '';
-            document.getElementById('captionModal').classList.add('show');
-            document.getElementById('captionInput').focus();
-        }
-
-        function hideCaptionModal() {
-            document.getElementById('captionModal').classList.remove('show');
-        }
-
-        function updateCaptionPreview() {
-            const input = document.getElementById('captionInput').value;
-            const converted = input ? convertToTitleCase(input) : '';
-            document.getElementById('captionPreview').textContent = 
-                converted ? `Preview: ${currentCaptionType} #\t${converted}` : '';
-        }
-
-        // ============================================
-        // SMART CAPTION HANDLER
-        // Matches VBA logic:
-        // - If line has 2+ words: format as caption (add prefix if missing)
-        // - If line empty/1 word: prompt for caption text
+        // FORMAT CAPTION HANDLERS (Format only, no insertion)
+        // User inserts captions via Word's References → Insert Caption
         // ============================================
         async function handleTableCaption() {
-            await handleSmartCaption('Table');
+            await formatCaptionParagraph('Table');
         }
 
         async function handleFigureCaption() {
-            await handleSmartCaption('Figure');
+            await formatCaptionParagraph('Figure');
         }
 
-        async function handleSmartCaption(captionType) {
+        async function formatCaptionParagraph(captionType) {
             try {
                 await Word.run(async (context) => {
                     const selection = context.document.getSelection();
@@ -1520,256 +1465,57 @@
                     para.load("text");
                     await context.sync();
 
-                    let currentLine = para.text;
-                    // Remove trailing paragraph mark
-                    if (currentLine.endsWith('\r')) {
-                        currentLine = currentLine.slice(0, -1);
+                    let text = para.text;
+                    if (text.endsWith('\r')) {
+                        text = text.slice(0, -1);
                     }
-                    currentLine = currentLine.trim();
 
-                    // Count words
-                    const words = currentLine.split(/\s+/).filter(w => w.length > 0);
-                    const wordCount = words.length;
-
-                    if (wordCount >= 2) {
-                        // Existing text - format as caption
-                        await formatExistingAsCaption(para, currentLine, captionType, context);
-                    } else {
-                        // Empty or single word - show modal for input
-                        currentCaptionType = captionType;
-                        showCaptionModal(captionType);
+                    if (text.trim() === '') {
+                        showToast('Empty paragraph. Insert caption first using References → Insert Caption.', 'error');
+                        return;
                     }
-                });
-            } catch (error) {
-                console.error("Caption Error:", error);
-                showToast('Error: ' + error.message, 'error');
-            }
-        }
 
-        async function formatExistingAsCaption(para, currentLine, captionType, context) {
-            // Check if it already has the label prefix (Table or Figure)
-            const labelRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
-            const hasLabel = labelRegex.test(currentLine);
-
-            let captionText = '';
-
-            if (hasLabel) {
-                // Already has "Table X" or "Figure X" prefix
-                // Extract text after the prefix (handle : or tab or space after number)
-                
-                // Try colon first
-                let colonPos = currentLine.indexOf(':');
-                if (colonPos > 0) {
-                    captionText = currentLine.substring(colonPos + 1).trim();
-                } else {
-                    // Try tab
-                    let tabPos = currentLine.indexOf('\t');
-                    if (tabPos > 0) {
-                        captionText = currentLine.substring(tabPos + 1).trim();
-                    } else {
-                        // Find space after the number (e.g., "Table 1 Some Text")
-                        const match = currentLine.match(new RegExp(`^${captionType}\\s+\\d+\\s+(.*)`, 'i'));
-                        if (match) {
-                            captionText = match[1].trim();
+                    // Check if it looks like a caption (starts with Table/Figure and has a number)
+                    const captionRegex = new RegExp(`^${captionType}\\s+\\d+`, 'i');
+                    
+                    if (captionRegex.test(text.trim())) {
+                        // It's a caption - extract and format the text part
+                        let captionText = '';
+                        
+                        // Find separator (tab, colon, or space after number)
+                        let tabPos = text.indexOf('\t');
+                        let colonPos = text.indexOf(':');
+                        
+                        if (tabPos > 0) {
+                            captionText = text.substring(tabPos + 1).trim();
+                        } else if (colonPos > 0) {
+                            captionText = text.substring(colonPos + 1).trim();
                         } else {
-                            captionText = currentLine;
+                            // Try to find text after "Table X " or "Figure X "
+                            const match = text.match(new RegExp(`^${captionType}\\s+\\d+\\s+(.*)`, 'i'));
+                            if (match) {
+                                captionText = match[1].trim();
+                            }
+                        }
+
+                        // Convert caption text to Title Case (preserve the "Table X" part)
+                        if (captionText) {
+                            const convertedCaption = convertToTitleCase(captionText);
+                            // We can't easily replace just part of the text with fields, so just format
                         }
                     }
-                }
-            } else {
-                // No prefix - use the whole line as caption text
-                captionText = currentLine;
-            }
 
-            // Convert to Title Case
-            const convertedCaption = convertToTitleCase(captionText);
-
-            // Create OOXML with SEQ field for proper caption
-            const captionOoxml = `
-                <pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
-                    <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
-                        <pkg:xmlData>
-                            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                                <w:body>
-                                    <w:p>
-                                        <w:pPr>
-                                            <w:pStyle w:val="Caption"/>
-                                            <w:jc w:val="left"/>
-                                        </w:pPr>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:t>${captionType} </w:t>
-                                        </w:r>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:fldChar w:fldCharType="begin"/>
-                                        </w:r>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:instrText xml:space="preserve"> SEQ ${captionType} \\* ARABIC </w:instrText>
-                                        </w:r>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:fldChar w:fldCharType="separate"/>
-                                        </w:r>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:t>1</w:t>
-                                        </w:r>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:fldChar w:fldCharType="end"/>
-                                        </w:r>
-                                        <w:r>
-                                            <w:rPr>
-                                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                <w:b/>
-                                                <w:sz w:val="24"/>
-                                            </w:rPr>
-                                            <w:tab/>
-                                            <w:t>${convertedCaption}</w:t>
-                                        </w:r>
-                                    </w:p>
-                                </w:body>
-                            </w:document>
-                        </pkg:xmlData>
-                    </pkg:part>
-                </pkg:package>`;
-
-            // Replace paragraph with OOXML caption
-            const paraRange = para.getRange();
-            paraRange.insertOoxml(captionOoxml, Word.InsertLocation.replace);
-
-            await context.sync();
-            showToast(`${captionType} caption with SEQ field created! Press F9 to update numbering.`, 'success');
-        }
-
-        async function insertCaption() {
-            const captionText = document.getElementById('captionInput').value.trim();
-            
-            if (!captionText) {
-                showToast('Please enter caption text', 'error');
-                return;
-            }
-
-            hideCaptionModal();
-
-            try {
-                await Word.run(async (context) => {
-                    const selection = context.document.getSelection();
-                    
-                    // Convert caption to Title Case
-                    const formattedCaption = convertToTitleCase(captionText);
-
-                    // Create OOXML with SEQ field for proper caption
-                    const captionOoxml = `
-                        <pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
-                            <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
-                                <pkg:xmlData>
-                                    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                                        <w:body>
-                                            <w:p>
-                                                <w:pPr>
-                                                    <w:pStyle w:val="Caption"/>
-                                                    <w:jc w:val="left"/>
-                                                </w:pPr>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:t>${currentCaptionType} </w:t>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:fldChar w:fldCharType="begin"/>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:instrText xml:space="preserve"> SEQ ${currentCaptionType} \\* ARABIC </w:instrText>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:fldChar w:fldCharType="separate"/>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:t>1</w:t>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:fldChar w:fldCharType="end"/>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:b/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:tab/>
-                                                    <w:t>${formattedCaption}</w:t>
-                                                </w:r>
-                                            </w:p>
-                                        </w:body>
-                                    </w:document>
-                                </pkg:xmlData>
-                            </pkg:part>
-                        </pkg:package>`;
-                    
-                    // Insert the caption with SEQ field
-                    selection.insertOoxml(captionOoxml, Word.InsertLocation.replace);
+                    // Apply formatting to entire paragraph
+                    para.font.name = "Times New Roman";
+                    para.font.size = 12;
+                    para.font.bold = true;
+                    para.alignment = Word.Alignment.left;
 
                     await context.sync();
-                    
-                    showToast(`${currentCaptionType} caption inserted! Press F9 to update numbering.`, 'success');
+                    showToast(`${captionType} caption formatted!`, 'success');
                 });
             } catch (error) {
-                console.error("Caption Error:", error);
+                console.error("Format Caption Error:", error);
                 showToast('Error: ' + error.message, 'error');
             }
         }
