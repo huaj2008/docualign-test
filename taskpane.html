@@ -831,49 +831,13 @@
             </div>
         </div>
 
-        <!-- TOC/LOT/LOF Section -->
+        <!-- Update All Section -->
         <div class="section">
             <div class="section-header">
                 <div class="section-icon text">📑</div>
-                <span class="section-title">Table of Contents</span>
+                <span class="section-title">Document Updates</span>
             </div>
             <div class="button-grid">
-                <!-- Insert TOC -->
-                <div class="tooltip-container">
-                    <button class="btn primary" id="btnInsertTOC">
-                        <div class="btn-icon">TOC</div>
-                        <span class="btn-label">Insert TOC</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Insert Table of Contents</div>
-                        <div class="tooltip-desc">Insert "Table of Contents" title. TNR 14pt bold centered, 12pt space after.</div>
-                    </div>
-                </div>
-
-                <!-- Insert LOT -->
-                <div class="tooltip-container">
-                    <button class="btn primary" id="btnInsertLOT">
-                        <div class="btn-icon">LOT</div>
-                        <span class="btn-label">Insert LOT</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Insert List of Tables</div>
-                        <div class="tooltip-desc">Insert "List of Tables" title. TNR 14pt bold centered, 12pt space after.</div>
-                    </div>
-                </div>
-
-                <!-- Insert LOF -->
-                <div class="tooltip-container">
-                    <button class="btn primary" id="btnInsertLOF">
-                        <div class="btn-icon">LOF</div>
-                        <span class="btn-label">Insert LOF</span>
-                    </button>
-                    <div class="tooltip">
-                        <div class="tooltip-title">Insert List of Figures</div>
-                        <div class="tooltip-desc">Insert "List of Figures" title. TNR 14pt bold centered, 12pt space after.</div>
-                    </div>
-                </div>
-
                 <!-- Update All -->
                 <div class="tooltip-container">
                     <button class="btn accent" id="btnUpdateAll">
@@ -881,8 +845,8 @@
                         <span class="btn-label">Update All</span>
                     </button>
                     <div class="tooltip">
-                        <div class="tooltip-title">Update All Fields</div>
-                        <div class="tooltip-desc">Update all fields in document including TOC, LOT, LOF, cross-references, and page numbers.</div>
+                        <div class="tooltip-title">Update & Format All</div>
+                        <div class="tooltip-desc">Update all fields (TOC, LOT, LOF, cross-refs, page numbers) AND format entries as TNR 12pt.</div>
                     </div>
                 </div>
             </div>
@@ -1070,10 +1034,7 @@
                 document.getElementById('btnSpecialChars').addEventListener('click', showSpecialCharsModal);
                 document.getElementById('btnLatinTerms').addEventListener('click', handleLatinTerms);
                 
-                // TOC/LOT/LOF buttons
-                document.getElementById('btnInsertTOC').addEventListener('click', () => handleInsertListTitle('Table of Contents'));
-                document.getElementById('btnInsertLOT').addEventListener('click', () => handleInsertListTitle('List of Tables'));
-                document.getElementById('btnInsertLOF').addEventListener('click', () => handleInsertListTitle('List of Figures'));
+                // Document Updates button
                 document.getElementById('btnUpdateAll').addEventListener('click', handleUpdateAll);
                 
                 // Heading Modal events
@@ -1920,127 +1881,72 @@
         }
 
         // ============================================
-        // INSERT TOC/LOT/LOF WITH ACTUAL FIELDS
-        // ============================================
-        async function handleInsertListTitle(title) {
-            try {
-                await Word.run(async (context) => {
-                    const selection = context.document.getSelection();
-                    
-                    // Insert title paragraph
-                    const titlePara = selection.insertParagraph(title, Word.InsertLocation.before);
-                    titlePara.font.name = "Times New Roman";
-                    titlePara.font.size = 14;
-                    titlePara.font.bold = true;
-                    titlePara.alignment = Word.Alignment.centered;
-                    titlePara.spaceAfter = 12;
-                    
-                    await context.sync();
-                    
-                    // Determine field code based on title
-                    let fieldCode = '';
-                    let fieldType = '';
-                    
-                    if (title === 'Table of Contents') {
-                        // TOC field: outline levels 1-3 with hyperlinks
-                        fieldCode = ' TOC \\\\o "1-3" \\\\h \\\\z \\\\u ';
-                        fieldType = 'TOC';
-                    } else if (title === 'List of Tables') {
-                        // Table of Figures field for Tables
-                        fieldCode = ' TOC \\\\h \\\\z \\\\c "Table" ';
-                        fieldType = 'LOT';
-                    } else if (title === 'List of Figures') {
-                        // Table of Figures field for Figures
-                        fieldCode = ' TOC \\\\h \\\\z \\\\c "Figure" ';
-                        fieldType = 'LOF';
-                    }
-                    
-                    // Create OOXML for the field
-                    const fieldOoxml = `
-                        <pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
-                            <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
-                                <pkg:xmlData>
-                                    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                                        <w:body>
-                                            <w:p>
-                                                <w:r>
-                                                    <w:fldChar w:fldCharType="begin"/>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:instrText xml:space="preserve">${fieldCode}</w:instrText>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:fldChar w:fldCharType="separate"/>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:rPr>
-                                                        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                                        <w:sz w:val="24"/>
-                                                    </w:rPr>
-                                                    <w:t>Right-click and select "Update Field" or press F9</w:t>
-                                                </w:r>
-                                                <w:r>
-                                                    <w:fldChar w:fldCharType="end"/>
-                                                </w:r>
-                                            </w:p>
-                                        </w:body>
-                                    </w:document>
-                                </pkg:xmlData>
-                            </pkg:part>
-                        </pkg:package>`;
-                    
-                    // Insert field after title
-                    const afterTitle = titlePara.getRange(Word.RangeLocation.after);
-                    afterTitle.insertOoxml(fieldOoxml, Word.InsertLocation.after);
-                    
-                    await context.sync();
-                    showToast(`${fieldType} inserted! Press F9 to update.`, 'success');
-                });
-            } catch (error) {
-                console.error("Insert TOC/LOT/LOF Error:", error);
-                // Fallback: just insert title if OOXML fails
-                try {
-                    await Word.run(async (context) => {
-                        const selection = context.document.getSelection();
-                        const titlePara = selection.insertParagraph(title, Word.InsertLocation.before);
-                        titlePara.font.name = "Times New Roman";
-                        titlePara.font.size = 14;
-                        titlePara.font.bold = true;
-                        titlePara.alignment = Word.Alignment.centered;
-                        titlePara.spaceAfter = 12;
-                        await context.sync();
-                        showToast(`"${title}" title inserted. Use References tab to insert the actual list.`, 'success');
-                    });
-                } catch (e2) {
-                    showToast('Error: ' + error.message, 'error');
-                }
-            }
-        }
-
-        // ============================================
-        // UPDATE ALL FIELDS HANDLER
+        // UPDATE ALL FIELDS + FORMAT TOC/LOT/LOF
         // ============================================
         async function handleUpdateAll() {
             try {
                 await Word.run(async (context) => {
-                    // Get all fields in the document
                     const body = context.document.body;
+                    
+                    // 1. Update all fields
                     const fields = body.fields;
                     fields.load("items");
                     await context.sync();
                     
-                    // Update each field
+                    let fieldCount = fields.items.length;
                     for (let i = 0; i < fields.items.length; i++) {
                         fields.items[i].updateResult();
                     }
                     
                     await context.sync();
                     
-                    const fieldCount = fields.items.length;
-                    if (fieldCount > 0) {
-                        showToast(`Updated ${fieldCount} field(s)!`, 'success');
+                    // 2. Format TOC/LOT/LOF entries
+                    const paragraphs = body.paragraphs;
+                    paragraphs.load("items");
+                    await context.sync();
+                    
+                    let formattedCount = 0;
+                    
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        paragraphs.items[i].load("style");
+                    }
+                    await context.sync();
+                    
+                    for (let i = 0; i < paragraphs.items.length; i++) {
+                        const para = paragraphs.items[i];
+                        const styleName = para.style.toLowerCase();
+                        
+                        // Check if it's a TOC entry style and get level
+                        let tocLevel = 0;
+                        if (styleName === 'toc 1' || styleName === 'toc1') tocLevel = 1;
+                        else if (styleName === 'toc 2' || styleName === 'toc2') tocLevel = 2;
+                        else if (styleName === 'toc 3' || styleName === 'toc3') tocLevel = 3;
+                        else if (styleName === 'toc 4' || styleName === 'toc4') tocLevel = 4;
+                        else if (styleName === 'toc 5' || styleName === 'toc5') tocLevel = 5;
+                        else if (styleName === 'toc 6' || styleName === 'toc6') tocLevel = 6;
+                        else if (styleName.includes('table of figures') || 
+                                 styleName.includes('table of tables')) tocLevel = 1;
+                        
+                        if (tocLevel > 0) {
+                            // Format as TNR 12pt
+                            para.font.name = "Times New Roman";
+                            para.font.size = 12;
+                            
+                            // Set indentation based on level (0.25 inch per level)
+                            // Level 1 = 0, Level 2 = 0.25", Level 3 = 0.5", etc.
+                            const indentPoints = (tocLevel - 1) * 18; // 18 points = 0.25 inch
+                            para.leftIndent = indentPoints;
+                            
+                            formattedCount++;
+                        }
+                    }
+                    
+                    await context.sync();
+                    
+                    if (fieldCount > 0 || formattedCount > 0) {
+                        showToast(`Updated ${fieldCount} field(s), formatted ${formattedCount} TOC/LOT/LOF entries!`, 'success');
                     } else {
-                        showToast('No fields to update', 'error');
+                        showToast('No fields or TOC entries found', 'error');
                     }
                 });
             } catch (error) {
